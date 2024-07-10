@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means WASM Color Reducer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>K-Means WASM Color Reducer</h1>
+        <div class="grid">
+            <div>
+                <div class="input-group">
+                    <label for="imageUpload">Upload Image</label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+                <div class="input-group">
+                    <label for="colorCount">Max Colors</label>
+                    <input type="number" id="colorCount" min="2" max="256" value="16">
+                </div>
+                <button id="processBtn">Process Image</button>
+                <button id="downloadBtn" disabled>Download Image</button>
+            </div>
+            <div>
+                <h2>Original Image</h2>
+                <div id="imagePreview" class="image-preview">
+                    <p id="dropText">No image uploaded</p>
+                    <img id="previewImage" style="display: none;" alt="Image preview">
+                </div>
+            </div>
+            <div>
+                <h2>Processed Image</h2>
+                <div id="processedImagePreview" class="image-preview">
+                    <p>No image processed yet</p>
+                    <img id="processedImage" style="display: none;" alt="Processed image preview">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script type="module">
+        import init, { reduce_colorspace } from './pkg/rust.js';
+        
+        async function initWasm() {
+          await init();
+          window.reduce_colorspace = reduce_colorspace;
+        }
+        
+        initWasm();
+      </script>
+</body>
+</html>
