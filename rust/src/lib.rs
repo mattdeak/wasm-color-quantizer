@@ -6,33 +6,60 @@ use rand::Rng;
 
 const MAX_ITERATIONS: usize = 1000;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct RGBAPixel {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
+    pub data: f32x4,
 }
 
 impl RGBAPixel {
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
-        RGBAPixel { r, g, b, a }
+        RGBAPixel { 
+            data: f32x4::new(
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+                a as f32 / 255.0
+            )
+        }
+    }
+
+    pub fn r(&self) -> f32 { self.data.extract(0) }
+    pub fn g(&self) -> f32 { self.data.extract(1) }
+    pub fn b(&self) -> f32 { self.data.extract(2) }
+    pub fn a(&self) -> f32 { self.data.extract(3) }
+
+    pub fn to_u8_array(&self) -> [u8; 4] {
+        [
+            (self.r() * 255.0) as u8,
+            (self.g() * 255.0) as u8,
+            (self.b() * 255.0) as u8,
+            (self.a() * 255.0) as u8,
+        ]
     }
 }
 
-pub type Centroid = Vec<f64>;
+impl PartialEq for RGBAPixel {
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
 
+impl Eq for RGBAPixel {}
 
-// I honestly don't know if this is speeding it up
-// should probably test
+impl std::hash::Hash for RGBAPixel {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        (self.r() as usize * 2 + self.g() as usize * 3 + self.b() as usize * 5 + self.a() as usize * 7).hash(state);
+    }
+}
+
+pub type Centroid = [f32; 3];
+
 #[inline]
 fn euclidean_distance_simd(a: &RGBAPixel, b: &Centroid) -> f32 {
-    let a_simd = f32x4::new(a.r as f32, a.g as f32, a.b as f32, 0.0);
-    let b_simd = f32x4::new(b[0] as f32, b[1] as f32, b[2] as f32, 0.0);
-    let diff = a_simd - b_simd;
+    let b_simd = f32x4::new(b[0], b[1], b[2], 0.0);
+    let diff = a.data - b_simd;
     let squared_diff = diff * diff;
-    let sum_squared_diff = squared_diff.sum();
-    sum_squared_diff.sqrt()
+    squared_diff.sum().sqrt()
 }
 
 fn find_closest_centroid(pixel: &RGBAPixel, centroids: &[Centroid]) -> usize {
@@ -55,41 +82,37 @@ fn num_distinct_colors(data: &[RGBAPixel]) -> usize {
     color_hashset.len()
 }
 
-// Ok we're using the K-Means++ initialization
-// I think this is right? Seems to work
 pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
     let mut centroids = Vec::with_capacity(k);
     let mut rng = rand::thread_rng();
 
-    // Choose the first centroid randomly
     if let Some(first_centroid) = data.choose(&mut rng) {
-        centroids.push(vec![first_centroid.r as f64, first_centroid.g as f64, first_centroid.b as f64]);
+        centroids.push([first_centroid.r(), first_centroid.g(), first_centroid.b()]);
     } else {
         return centroids; 
     }
 
-    // K-Means++
     while centroids.len() < k {
-        let distances: Vec<f64> = data
+        let distances: Vec<f32> = data
             .iter()
             .map(|pixel| {
                 centroids
                     .iter()
-                    .map(|centroid| euclidean_distance_simd(pixel, centroid) as f64)
+                    .map(|centroid| euclidean_distance_simd(pixel, centroid))
                     .min_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap()
             })
             .collect();
 
-        let total_distance: f64 = distances.iter().sum();
-        let threshold = rng.gen::<f64>() * total_distance;
+        let total_distance: f32 = distances.iter().sum();
+        let threshold = rng.gen::<f32>() * total_distance;
 
         let mut cumulative_distance = 0.0;
         for (i, distance) in distances.iter().enumerate() {
             cumulative_distance += distance;
             if cumulative_distance >= threshold {
                 let pixel = &data[i];
-                centroids.push(vec![pixel.r as f64, pixel.g as f64, pixel.b as f64]);
+                centroids.push([pixel.r(), pixel.g(), pixel.b()]);
                 break;
             }
         }
@@ -108,7 +131,6 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
     while !converged && iterations < MAX_ITERATIONS {
         converged = true;
         
-        // Assign points to clusters
         for (i, pixel) in data.iter().enumerate() {
             let closest_centroid = find_closest_centroid(pixel, &centroids);
             if assignments[i] != closest_centroid {
@@ -121,25 +143,17 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
             clusters[cluster].push(i);
         });
 
-        // Update centroids
         for (i, cluster) in clusters.iter().enumerate() {
             if cluster.is_empty() {
                 continue;
             }
-
-            let mut sum_r = 0.0;
-            let mut sum_g = 0.0;
-            let mut sum_b = 0.0;
-            let num_pixels = cluster.len() as f64;
-
+            let mut sum = f32x4::splat(0.0);
             for &idx in cluster {
-                let pixel = &data[idx];
-                sum_r += pixel.r as f64;
-                sum_g += pixel.g as f64;
-                sum_b += pixel.b as f64;
+                sum += data[idx].data;
             }
-
-            centroids[i] = vec![sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
+            let num_pixels = cluster.len() as f32;
+            let new_centroid = sum / f32x4::splat(num_pixels);
+            centroids[i] = [new_centroid.extract(0), new_centroid.extract(1), new_centroid.extract(2)];
         }
 
         iterations += 1;
@@ -157,7 +171,7 @@ pub fn reduce_colorspace(
 ) -> Vec<u8> {
     let image_data: Vec<RGBAPixel> = pixels
         .chunks_exact(4)
-        .map(|chunk| RGBAPixel { r: chunk[0], g: chunk[1], b: chunk[2], a: chunk[3] })
+        .map(|chunk| RGBAPixel::new(chunk[0], chunk[1], chunk[2], chunk[3]))
         .collect();
 
     if num_distinct_colors(&image_data) <= max_colors {
@@ -170,12 +184,13 @@ pub fn reduce_colorspace(
     for pixel in image_data.iter() {
         let closest_centroid = find_closest_centroid(pixel, &centroids);
         let new_color = &centroids[closest_centroid];
-        new_image.extend_from_slice(&[
-            new_color[0] as u8,
-            new_color[1] as u8,
-            new_color[2] as u8,
-            pixel.a
-        ]);
+        let rgba = RGBAPixel::new(
+            (new_color[0] * 255.0) as u8,
+            (new_color[1] * 255.0) as u8,
+            (new_color[2] * 255.0) as u8,
+            (pixel.a() * 255.0) as u8
+        ).to_u8_array();
+        new_image.extend_from_slice(&rgba);
     }
 
     new_image
