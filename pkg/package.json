@@ -1,14 +1,14 @@
 {
-  "name": "rust",
+  "name": "kmeanspp",
   "type": "module",
   "version": "0.1.0",
   "files": [
-    "rust_bg.wasm",
-    "rust.js",
-    "rust.d.ts"
+    "kmeanspp_bg.wasm",
+    "kmeanspp.js",
+    "kmeanspp.d.ts"
   ],
-  "main": "rust.js",
-  "types": "rust.d.ts",
+  "main": "kmeanspp.js",
+  "types": "kmeanspp.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]
