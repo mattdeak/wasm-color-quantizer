@@ -79,9 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     downloadBtn.addEventListener('click', () => {
-        if (previewImage.src) {
+        const processedImage = document.getElementById('processedImage');
+        if (processedImage.src) {
             const a = document.createElement('a');
-            a.href = previewImage.src;
+            a.href = processedImage.src;
             a.download = 'processed_image.png';
             document.body.appendChild(a);
             a.click();
