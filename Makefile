@@ -5,6 +5,7 @@ build:
 	cd ..
 	rm -r pkg
 	mv rust/pkg .
+	rm pkg/.gitignore pkg/*.ts
 
 serve: build
 	python3 -m http.server
