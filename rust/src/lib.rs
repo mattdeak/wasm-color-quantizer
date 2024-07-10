@@ -1,10 +1,12 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
+
+
 use std::collections::HashSet;
 use rand::Rng;
 use rand::seq::SliceRandom;
 
-mod utils;
+pub mod utils;
 pub mod types;
 
 use types::{RGBAPixel, Centroid};
@@ -122,7 +124,7 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
     (clusters, centroids)
 }
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen, target_feature(enable = "simd128"))]
 pub fn reduce_colorspace(
     width: u32,
     height: u32,

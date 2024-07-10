@@ -1,3 +1,5 @@
+// #![cfg(target_arch = "wasm32")]
+
 use kmeanspp::{types::RGBAPixel, kmeans};
 use rand::Rng;
 use std::time::{Instant, Duration};
@@ -19,7 +21,7 @@ fn generate_random_pixels(count: usize) -> Vec<RGBAPixel> {
 pub extern "C" fn benchmark() -> f64 {
     let k_values = [2, 4, 8, 16];
     let data_sizes = [1000, 10000, 100000];
-    let iterations = 50;
+    let iterations = 100;
     let warmup_duration = Duration::from_secs(3);
     let mut total_time = 0.0;
 
@@ -60,7 +62,13 @@ pub extern "C" fn benchmark() -> f64 {
     total_time
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn main() {
     let total_time = benchmark();
     println!("Total benchmark time: {:.6}s", total_time);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn main() {
+    println!("This benchmark is only supported on wasm32 targets.");
 }

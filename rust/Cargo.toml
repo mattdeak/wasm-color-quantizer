@@ -14,9 +14,14 @@ rand = "0.8.5"
 wasm-bindgen = "0.2.92"
 
 [[bench]]
-name = "kmeans_benchmark"
+name = "wasm_benchmarks"
+harness = false
+
+[[bench]]
+name = "criterion_benchmarks"
 harness = false
 
 [dev-dependencies]
+criterion = "0.5.1"
 statrs = "0.17.1"
 wasm-bindgen-test = "0.3.42"
