@@ -7,7 +7,7 @@ pub fn euclidean_distance(a: &[f32; 3], b: &[f32; 3]) -> f32 {
     let b_diff = a[1] - b[1];
     let c_diff = a[2] - b[2];
     let sum_squared_diff = a_diff * a_diff + b_diff * b_diff + c_diff * c_diff;
-    sum_squared_diff.sqrt()
+    sum_squared_diff
 }
 
 pub fn find_closest_centroid(pixel: &RGBAPixel, centroids: &[Centroid]) -> usize {
@@ -26,7 +26,8 @@ pub fn find_closest_centroid(pixel: &RGBAPixel, centroids: &[Centroid]) -> usize
 pub fn check_convergence(initial_centroids: &[Centroid], final_centroids: &[Centroid], tolerance: f32) -> bool {
     let min_initial_distance = calculate_min_centroid_distance(initial_centroids);
     let max_movement = calculate_max_centroid_movement(initial_centroids, final_centroids);
-    max_movement < tolerance * min_initial_distance
+    // We're squaring the tolerance because we aren't square-rooting the distances
+    max_movement < (tolerance * tolerance) * min_initial_distance
 }
 
 pub fn calculate_max_centroid_movement(initial_centroids: &[Centroid], final_centroids: &[Centroid]) -> f32 {
