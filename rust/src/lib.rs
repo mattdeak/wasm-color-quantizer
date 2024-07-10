@@ -1,4 +1,6 @@
+#[cfg(target_arch = "wasm")]
 use wasm_bindgen::prelude::*;
+
 use std::collections::HashSet;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -124,7 +126,7 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
     (clusters, centroids)
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm", wasm_bindgen)]
 pub fn reduce_colorspace(
     width: u32,
     height: u32,
