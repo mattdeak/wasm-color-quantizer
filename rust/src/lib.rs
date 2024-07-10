@@ -1,52 +1,19 @@
 use wasm_bindgen::prelude::*;
 use std::collections::HashSet;
+use rand::Rng;
 use rand::seq::SliceRandom;
 use packed_simd::f32x4;
-use rand::Rng;
+
+mod utils;
+mod types;
+
+use types::{RGBAPixel, Centroid};
+use utils::{check_convergence, find_closest_centroid};
+
 
 const MAX_ITERATIONS: usize = 300;
-const TOLERANCE: f32 = 0.0001;
+const TOLERANCE: f32 = 0.02;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct RGBAPixel {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
-}
-
-impl RGBAPixel {
-    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
-        RGBAPixel { r, g, b, a }
-    }
-}
-
-pub type Centroid = Vec<f64>;
-
-
-// I honestly don't know if this is speeding it up
-// should probably test
-#[inline]
-fn euclidean_distance_simd(a: &RGBAPixel, b: &Centroid) -> f32 {
-    let a_simd = f32x4::new(a.r as f32, a.g as f32, a.b as f32, 0.0);
-    let b_simd = f32x4::new(b[0] as f32, b[1] as f32, b[2] as f32, 0.0);
-    let diff = a_simd - b_simd;
-    let squared_diff = diff * diff;
-    let sum_squared_diff = squared_diff.sum();
-    sum_squared_diff.sqrt()
-}
-
-fn find_closest_centroid(pixel: &RGBAPixel, centroids: &[Centroid]) -> usize {
-    centroids.iter()
-        .enumerate()
-        .min_by(|(_, a), (_, b)| {
-            euclidean_distance_simd(pixel, a)
-                .partial_cmp(&euclidean_distance_simd(pixel, b))
-                .unwrap()
-        })
-        .map(|(index, _)| index)
-        .unwrap()
-}
 
 fn num_distinct_colors(data: &[RGBAPixel]) -> usize {
     let mut color_hashset = HashSet::new();
@@ -64,33 +31,33 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
 
     // Choose the first centroid randomly
     if let Some(first_centroid) = data.choose(&mut rng) {
-        centroids.push(vec![first_centroid.r as f64, first_centroid.g as f64, first_centroid.b as f64]);
+        centroids.push(f32x4::new(first_centroid.r as f32, first_centroid.g as f32, first_centroid.b as f32, 0.0));
     } else {
         return centroids; 
     }
 
     // K-Means++
     while centroids.len() < k {
-        let distances: Vec<f64> = data
+        let distances: Vec<f32> = data
             .iter()
             .map(|pixel| {
                 centroids
                     .iter()
-                    .map(|centroid| euclidean_distance_simd(pixel, centroid) as f64)
+                    .map(|centroid| utils::euclidean_distance_simd(pixel.into(), *centroid))
                     .min_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap()
             })
             .collect();
 
-        let total_distance: f64 = distances.iter().sum();
-        let threshold = rng.gen::<f64>() * total_distance;
+        let total_distance: f32 = distances.iter().sum();
+        let threshold = rng.gen::<f32>() * total_distance;
 
         let mut cumulative_distance = 0.0;
         for (i, distance) in distances.iter().enumerate() {
             cumulative_distance += distance;
             if cumulative_distance >= threshold {
                 let pixel = &data[i];
-                centroids.push(vec![pixel.r as f64, pixel.g as f64, pixel.b as f64]);
+                centroids.push(pixel.into());
                 break;
             }
         }
@@ -101,22 +68,23 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
 
 pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) {
     let mut centroids = initialize_centroids(data, k);
+    println!("len centroids: {}", centroids.len());
+    let mut new_centroids: Vec<Centroid> = centroids.clone();
+    println!("len new_centroids: {}", new_centroids.len());
+
     let mut clusters = vec![Vec::new(); k];
     let mut assignments = vec![0; data.len()];
 
+    // Define the convergence criterion percentage (e.g., 2%)
     let mut iterations = 0;
-    while iterations < MAX_ITERATIONS {
-        let mut total_distance = 0.0;
+    let mut converged = false;
+    while iterations < MAX_ITERATIONS && !converged {
         // Assign points to clusters
         for (i, pixel) in data.iter().enumerate() {
             let closest_centroid = find_closest_centroid(pixel, &centroids);
-            total_distance += euclidean_distance_simd(pixel, &centroids[closest_centroid]);
             if assignments[i] != closest_centroid {
                 assignments[i] = closest_centroid;
             }
-        }
-        if total_distance < TOLERANCE {
-            break;
         }
 
         clusters.iter_mut().for_each(|cluster| cluster.clear());
@@ -124,27 +92,32 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
             clusters[cluster].push(i);
         });
 
-        // Update centroids
-        for (i, cluster) in clusters.iter().enumerate() {
+        // Update centroids and check for convergence
+        clusters.iter().zip(new_centroids.iter_mut()).for_each(|(cluster, new_centroid)| {
             if cluster.is_empty() {
-                continue;
+                return; // centroid can't move if there are no points
             }
 
             let mut sum_r = 0.0;
             let mut sum_g = 0.0;
             let mut sum_b = 0.0;
-            let num_pixels = cluster.len() as f64;
+            let num_pixels = cluster.len() as f32;
 
             for &idx in cluster {
                 let pixel = &data[idx];
-                sum_r += pixel.r as f64;
-                sum_g += pixel.g as f64;
-                sum_b += pixel.b as f64;
+                sum_r += pixel.r as f32;
+                sum_g += pixel.g as f32;
+                sum_b += pixel.b as f32;
             }
 
-            centroids[i] = vec![sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
-        }
+            *new_centroid = f32x4::new(sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels, 0.0);
+        });
 
+
+        converged = check_convergence(&centroids, &new_centroids, TOLERANCE);
+        // Swap the centroids and new_centroid. We'll update the new centroids again before
+        // we check for convergence.
+        std::mem::swap(&mut centroids, &mut new_centroids);
         iterations += 1;
     }
     
@@ -174,9 +147,9 @@ pub fn reduce_colorspace(
         let closest_centroid = find_closest_centroid(pixel, &centroids);
         let new_color = &centroids[closest_centroid];
         new_image.extend_from_slice(&[
-            new_color[0] as u8,
-            new_color[1] as u8,
-            new_color[2] as u8,
+            new_color.extract(0) as u8,
+            new_color.extract(1) as u8,
+            new_color.extract(2) as u8,
             pixel.a
         ]);
     }
