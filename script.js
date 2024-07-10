@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     processBtn.addEventListener('click', async () => {
         if (uploadedImage) {
+            const before = performance.now();
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas');
@@ -61,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 
                 const numColors = parseInt(colorCount.value);
+
                 const processedData = reduce_colorspace(canvas.width, canvas.height, imageData.data, numColors);
                 
                 const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height);
@@ -71,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 processedImage.style.display = 'block';
                 document.querySelector('#processedImagePreview p').style.display = 'none';
                 downloadBtn.disabled = false;
+
+                const after = performance.now();
+                console.log(`Time taken: ${after - before}ms`);
             };
             img.src = URL.createObjectURL(uploadedImage);
         } else {
