@@ -10,7 +10,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    PORT: int = 8000
+    PORT: int = 8001
     with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
         print(f"Serving at port {PORT}")
         httpd.serve_forever()
