@@ -1,6 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use kmeanspp::{types::RGBAPixel, kmeans};
 use rand::Rng;
+use std::time::Instant;
 
 fn generate_random_pixels(count: usize) -> Vec<RGBAPixel> {
     let mut rng = rand::thread_rng();
@@ -14,27 +14,39 @@ fn generate_random_pixels(count: usize) -> Vec<RGBAPixel> {
         .collect()
 }
 
-fn benchmark_kmeans(c: &mut Criterion) {
-    let small_data = generate_random_pixels(1000);
-    let medium_data = generate_random_pixels(10000);
-    let large_data = generate_random_pixels(100000);
-
+#[no_mangle]
+pub extern "C" fn benchmark() -> f64 {
     let k_values = [2, 4, 8, 16];
+    let data_sizes = [1000, 10000, 100000];
+    let iterations = 10; // Number of iterations for each configuration
+    let mut total_time = 0.0;
 
-    for k in k_values.iter() {
-        c.bench_function(&format!("kmeans small k={}", k), |b| {
-            b.iter(|| kmeans(black_box(&small_data), black_box(*k)))
-        });
+    for &size in &data_sizes {
+        let data = generate_random_pixels(size);
+        for &k in &k_values {
+            let mut times = Vec::with_capacity(iterations);
 
-        c.bench_function(&format!("kmeans medium k={}", k), |b| {
-            b.iter(|| kmeans(black_box(&medium_data), black_box(*k)))
-        });
+            for _ in 0..iterations {
+                let start = Instant::now();
+                kmeans(&data, k);
+                let duration = start.elapsed();
+                times.push(duration.as_secs_f64());
+            }
 
-        c.bench_function(&format!("kmeans large k={}", k), |b| {
-            b.iter(|| kmeans(black_box(&large_data), black_box(*k)))
-        });
+            let mean_time: f64 = times.iter().sum::<f64>() / iterations as f64;
+            total_time += mean_time * iterations as f64;
+            println!(
+                "Size: {}, K: {}, Mean Time: {:.6}s",
+                size,
+                k,
+                mean_time
+            );
+        }
     }
+    total_time
 }
 
-criterion_group!(benches, benchmark_kmeans);
-criterion_main!(benches);
+pub fn main() {
+    let total_time = benchmark();
+    println!("Total benchmark time: {:.6}s", total_time);
+}

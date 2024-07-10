@@ -1,3 +1,5 @@
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 use std::collections::HashSet;
 use rand::Rng;
 use rand::seq::SliceRandom;
