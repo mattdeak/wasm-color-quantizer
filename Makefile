@@ -8,6 +8,6 @@ build:
 	rm pkg/.gitignore pkg/*.ts
 
 serve: build
-	python3 -m http.server
+	python3 dev_server.py
 
 all: serve

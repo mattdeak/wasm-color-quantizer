@@ -3,6 +3,9 @@ use std::collections::HashSet;
 use rand::seq::SliceRandom;
 use packed_simd::f32x4;
 use rand::Rng;
+use rayon::prelude::*;
+
+pub use wasm_bindgen_rayon::init_thread_pool;
 
 const MAX_ITERATIONS: usize = 1000;
 
@@ -106,16 +109,21 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
     let mut converged = false;
     let mut iterations = 0;
     while !converged && iterations < MAX_ITERATIONS {
-        converged = true;
-        
-        // Assign points to clusters
-        for (i, pixel) in data.iter().enumerate() {
+        println!("Iteration {}", iterations);
+        converged = data.par_iter().zip(assignments.par_iter_mut()).all(|(pixel, assignment)| {
             let closest_centroid = find_closest_centroid(pixel, &centroids);
-            if assignments[i] != closest_centroid {
-                assignments[i] = closest_centroid;
-                converged = false;
+            if *assignment != closest_centroid {
+                *assignment = closest_centroid;
+                false
+            } else {
+                true
             }
+        });
+
+        if converged {
+            break;
         }
+
         clusters.iter_mut().for_each(|cluster| cluster.clear());
         assignments.iter().enumerate().for_each(|(i, &cluster)| {
             clusters[cluster].push(i);

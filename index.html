@@ -42,11 +42,12 @@
 
     <script src="script.js"></script>
     <script type="module">
-        import init, { reduce_colorspace } from './pkg/rust.js';
+        import init, { initThreadPool, reduce_colorspace } from './pkg/rust.js';
         
         async function initWasm() {
           await init();
           window.reduce_colorspace = reduce_colorspace;
+          await initThreadPool(navigator.hardwareConcurrency);
         }
         
         initWasm();
