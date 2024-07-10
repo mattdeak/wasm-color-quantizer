@@ -7,11 +7,12 @@ pub fn euclidean_distance(a: &[f32; 3], b: &[f32; 3]) -> f32 {
     let b_diff = a[1] - b[1];
     let c_diff = a[2] - b[2];
     let sum_squared_diff = a_diff * a_diff + b_diff * b_diff + c_diff * c_diff;
+    // Like, way faster than sqrt. Just multiply tolerance later
     sum_squared_diff
 }
 
 pub fn find_closest_centroid(pixel: &RGBAPixel, centroids: &[Centroid]) -> usize {
-    assert!(centroids.len() > 0);
+    debug_assert!(centroids.len() > 0);
     centroids.iter()
         .enumerate()
         .min_by(|(_, a), (_, b)| {
@@ -37,23 +38,30 @@ pub fn calculate_max_centroid_movement(initial_centroids: &[Centroid], final_cen
 
 // Helper function to calculate the minimum distance between centroids
 pub fn calculate_min_centroid_distance(centroids: &[Centroid]) -> f32 {
-    let mut min_distance = f32::MAX;
-    for i in 0..centroids.len() {
-        for j in (i + 1)..centroids.len() {
-            let distance = euclidean_distance(
-                &centroids[i],
-                &centroids[j]
-            );
-            min_distance = min_distance.min(distance);
-        }
-    }
-    min_distance
+    // let mut min_distance = f32::MAX;
+    // for i in 0..centroids.len() {
+    //     for j in (i + 1)..centroids.len() {
+    //         let distance = euclidean_distance(
+    //             &centroids[i],
+    //             &centroids[j]
+    //         );
+    //         min_distance = min_distance.min(distance);
+    //     }
+    // }
+    // min_distance
+    centroids.iter()
+    .enumerate()
+    .flat_map(|(i, &centroid_a)| 
+        centroids[i+1..].iter().map(move |&centroid_b| 
+            euclidean_distance(&centroid_a, &centroid_b)
+        )
+    )
+    .fold(f32::MAX, f32::min)
 }
 
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -81,7 +89,7 @@ mod tests {
         ];
         
         let max_movement = calculate_max_centroid_movement(&initial_centroids, &final_centroids);
-        assert!((max_movement - 17.32051).abs() < 0.00001); // sqrt(300) ≈ 17.32051
+        assert!((max_movement - 300.0).abs() < 0.00001); // sqrt(300) ≈ 17.32051
     }
 
     #[test]

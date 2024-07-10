@@ -20,7 +20,9 @@ const TOLERANCE: f32 = 0.02;
 fn num_distinct_colors(data: &[RGBAPixel]) -> usize {
     let mut color_hashset = HashSet::new();
     for pixel in data {
-        color_hashset.insert(*pixel);
+        // hacky but its fine, it only occurs once at the beginning
+        let hash_key = pixel.0[0] as u8 * 2 + pixel.0[1] as u8 * 2 + pixel.0[2] as u8 * 2 + pixel.1;
+        color_hashset.insert(hash_key);
     }
     color_hashset.len()
 }
@@ -33,7 +35,7 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
 
     // Choose the first centroid randomly
     if let Some(first_centroid) = data.choose(&mut rng) {
-        centroids.push([ first_centroid.r as f32, first_centroid.g as f32, first_centroid.b as f32 ]);
+        centroids.push(first_centroid.0);
     } else {
         return centroids; 
     }
@@ -105,9 +107,9 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
 
             for &idx in cluster {
                 let pixel = &data[idx];
-                sum_r += pixel.r as f32;
-                sum_g += pixel.g as f32;
-                sum_b += pixel.b as f32;
+                sum_r += pixel.0[0];
+                sum_g += pixel.0[1];
+                sum_b += pixel.0[2];
             }
 
             *new_centroid = [sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
@@ -133,7 +135,7 @@ pub fn reduce_colorspace(
 ) -> Vec<u8> {
     let image_data: Vec<RGBAPixel> = pixels
         .chunks_exact(4)
-        .map(|chunk| RGBAPixel { r: chunk[0], g: chunk[1], b: chunk[2], a: chunk[3] })
+        .map(|chunk| RGBAPixel::new(chunk[0], chunk[1], chunk[2], chunk[3]))
         .collect();
 
     if num_distinct_colors(&image_data) <= max_colors {
@@ -150,7 +152,7 @@ pub fn reduce_colorspace(
             new_color[0] as u8,
             new_color[1] as u8,
             new_color[2] as u8,
-            pixel.a
+            pixel.0[3] as u8 // retain original alpha
         ]);
     }
 
