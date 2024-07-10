@@ -17,7 +17,8 @@
                 </div>
                 <div class="input-group">
                     <label for="colorCount">Max Colors</label>
-                    <input type="number" id="colorCount" min="2" max="256" value="16">
+                    <input type="number" id="colorCount" min="2" max="256" value="5">
+                    <small id="colorWarning" style="display: none; color: orange;">High color counts may slow down processing</small>
                 </div>
                 <button id="processBtn">Process Image</button>
                 <button id="downloadBtn" disabled>Download Image</button>
@@ -49,6 +50,12 @@
         }
         
         initWasm();
-      </script>
+
+        // Add event listener for color count input
+        document.getElementById('colorCount').addEventListener('input', function() {
+            const warningElement = document.getElementById('colorWarning');
+            warningElement.style.display = this.value > 20 ? 'block' : 'none';
+        });
+    </script>
 </body>
 </html>
