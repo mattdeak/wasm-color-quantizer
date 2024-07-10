@@ -4,7 +4,8 @@ use rand::seq::SliceRandom;
 use packed_simd::f32x4;
 use rand::Rng;
 
-const MAX_ITERATIONS: usize = 1000;
+const MAX_ITERATIONS: usize = 300;
+const TOLERANCE: f32 = 0.0001;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct RGBAPixel {
@@ -103,19 +104,21 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
     let mut clusters = vec![Vec::new(); k];
     let mut assignments = vec![0; data.len()];
 
-    let mut converged = false;
     let mut iterations = 0;
-    while !converged && iterations < MAX_ITERATIONS {
-        converged = true;
-        
+    while iterations < MAX_ITERATIONS {
+        let mut total_distance = 0.0;
         // Assign points to clusters
         for (i, pixel) in data.iter().enumerate() {
             let closest_centroid = find_closest_centroid(pixel, &centroids);
+            total_distance += euclidean_distance_simd(pixel, &centroids[closest_centroid]);
             if assignments[i] != closest_centroid {
                 assignments[i] = closest_centroid;
-                converged = false;
             }
         }
+        if total_distance < TOLERANCE {
+            break;
+        }
+
         clusters.iter_mut().for_each(|cluster| cluster.clear());
         assignments.iter().enumerate().for_each(|(i, &cluster)| {
             clusters[cluster].push(i);
