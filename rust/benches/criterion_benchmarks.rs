@@ -1,19 +1,18 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use kmeanspp::{types::RGBAPixel, kmeans, utils};
+use kmeanspp::{types::ColorVec, kmeans, utils};
 use rand::Rng;
 
 #[cfg(not(target_arch = "wasm32"))]
-fn generate_random_pixels(count: usize) -> Vec<RGBAPixel> {
+fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
-        .map(|_| RGBAPixel::new(
+        .map(|_| [
             rng.gen(),
             rng.gen(),
             rng.gen(),
-            255
-        ))
+        ])
         .collect()
 }
 
@@ -37,8 +36,8 @@ fn benchmark_kmeans(c: &mut Criterion) {
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_euclidean_distance(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
-    let a: [f32; 3] = [rng.gen(), rng.gen(), rng.gen()];
-    let b: [f32; 3] = [rng.gen(), rng.gen(), rng.gen()];
+    let a: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
+    let b: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
 
     c.bench_function("euclidean_distance", |bencher| {
         bencher.iter(|| utils::euclidean_distance(black_box(&a), black_box(&b)))
@@ -48,8 +47,8 @@ fn benchmark_euclidean_distance(c: &mut Criterion) {
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_find_closest_centroid(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
-    let pixel = RGBAPixel::new(rng.gen(), rng.gen(), rng.gen(), 255);
-    let centroids: Vec<[f32; 3]> = (0..100).map(|_| [rng.gen(), rng.gen(), rng.gen()]).collect();
+    let pixel = [rng.gen(), rng.gen(), rng.gen()];
+    let centroids: Vec<ColorVec> = (0..100).map(|_| [rng.gen(), rng.gen(), rng.gen()]).collect();
 
     c.bench_function("find_closest_centroid", |bencher| {
         bencher.iter(|| utils::find_closest_centroid(black_box(&pixel), black_box(&centroids)))

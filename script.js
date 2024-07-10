@@ -59,13 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvas.width = img.width;
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height, {
+                    colorSpace: 'srgb'
+                });
                 
                 const numColors = parseInt(colorCount.value);
 
                 const processedData = reduce_colorspace(canvas.width, canvas.height, imageData.data, numColors);
-                
-                const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height);
+                const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
+                    colorSpace: 'srgb'
+                });
                 ctx.putImageData(processedImageData, 0, 0);
                 
                 const processedImage = document.getElementById('processedImage');

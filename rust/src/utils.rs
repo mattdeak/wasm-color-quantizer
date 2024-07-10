@@ -1,54 +1,38 @@
-use crate::types::{RGBAPixel, Centroid};
+use crate::types::ColorVec;
 
 // should probably test
 #[inline]
-pub fn euclidean_distance(a: &[f32; 3], b: &[f32; 3]) -> f32 {
-    let a_diff = a[0] - b[0];
-    let b_diff = a[1] - b[1];
-    let c_diff = a[2] - b[2];
-    let sum_squared_diff = a_diff * a_diff + b_diff * b_diff + c_diff * c_diff;
-    // Like, way faster than sqrt. Just multiply tolerance later
-    sum_squared_diff
+pub fn euclidean_distance(a: &ColorVec, b: &ColorVec) -> f32 {
+    a.iter().zip(b.iter()).map(|(a, b)| (a - b) * (a - b)).sum()
 }
 
-pub fn find_closest_centroid(pixel: &RGBAPixel, centroids: &[Centroid]) -> usize {
+pub fn find_closest_centroid(pixel: &ColorVec, centroids: &[ColorVec]) -> usize {
     debug_assert!(centroids.len() > 0);
     centroids.iter()
         .enumerate()
         .min_by(|(_, a), (_, b)| {
-            euclidean_distance(&pixel.into(), *a)
-                .partial_cmp(&euclidean_distance(&pixel.into(), *b))
+            euclidean_distance(pixel, *a)
+                .partial_cmp(&euclidean_distance(pixel, *b))
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|(index, _)| index)
         .unwrap_or(0)
 }
 
-pub fn check_convergence(initial_centroids: &[Centroid], final_centroids: &[Centroid], tolerance: f32) -> bool {
+pub fn check_convergence(initial_centroids: &[ColorVec], final_centroids: &[ColorVec], tolerance: f32) -> bool {
     let min_initial_distance = calculate_min_centroid_distance(initial_centroids);
     let max_movement = calculate_max_centroid_movement(initial_centroids, final_centroids);
     // We're squaring the tolerance because we aren't square-rooting the distances
     max_movement < (tolerance * tolerance) * min_initial_distance
 }
 
-pub fn calculate_max_centroid_movement(initial_centroids: &[Centroid], final_centroids: &[Centroid]) -> f32 {
+pub fn calculate_max_centroid_movement(initial_centroids: &[ColorVec], final_centroids: &[ColorVec]) -> f32 {
     initial_centroids.iter().zip(final_centroids.iter()).map(|(a, b)| euclidean_distance(&a, &b)).reduce(f32::max).unwrap_or(0.0)
 }
 
 
 // Helper function to calculate the minimum distance between centroids
-pub fn calculate_min_centroid_distance(centroids: &[Centroid]) -> f32 {
-    // let mut min_distance = f32::MAX;
-    // for i in 0..centroids.len() {
-    //     for j in (i + 1)..centroids.len() {
-    //         let distance = euclidean_distance(
-    //             &centroids[i],
-    //             &centroids[j]
-    //         );
-    //         min_distance = min_distance.min(distance);
-    //     }
-    // }
-    // min_distance
+pub fn calculate_min_centroid_distance(centroids: &[ColorVec]) -> f32 {
     centroids.iter()
     .enumerate()
     .flat_map(|(i, &centroid_a)| 
@@ -62,11 +46,13 @@ pub fn calculate_min_centroid_distance(centroids: &[Centroid]) -> f32 {
 
 #[cfg(test)]
 mod tests {
+    use statrs::assert_almost_eq;
+
     use super::*;
 
     #[test]
     fn test_find_closest_centroid() {
-        let pixel = RGBAPixel::new(100, 100, 100, 255);
+        let pixel = [100.0, 100.0, 100.0];
         let centroids = vec![
             [0.0, 0.0, 0.0],
             [100.0, 100.0, 100.0],
@@ -100,8 +86,8 @@ mod tests {
             [200.0, 200.0, 200.0],
         ];
         
-        let min_distance = calculate_min_centroid_distance(&centroids);
-        assert!((min_distance - 173.2051).abs() < 0.0001); // sqrt(30000) ≈ 173.2051
+        let min_distance = calculate_min_centroid_distance(&centroids) as f64;
+        assert_almost_eq!(min_distance, 30000.0, 0.0001); // sqrt(30000) ≈ 173.2051
     }
 
 }

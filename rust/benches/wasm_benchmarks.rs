@@ -1,19 +1,18 @@
 // #![cfg(target_arch = "wasm32")]
 
-use kmeanspp::{types::RGBAPixel, kmeans};
+use kmeanspp::{types::ColorVec, kmeans};
 use rand::Rng;
 use std::time::{Instant, Duration};
 use statrs::{self, statistics::Statistics};
 
-fn generate_random_pixels(count: usize) -> Vec<RGBAPixel> {
+fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
-        .map(|_| RGBAPixel::new(
+        .map(|_| [
             rng.gen(),
             rng.gen(),
             rng.gen(),
-            255
-        ))
+        ])
         .collect()
 }
 

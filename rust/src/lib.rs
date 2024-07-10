@@ -9,19 +9,19 @@ use rand::seq::SliceRandom;
 pub mod utils;
 pub mod types;
 
-use types::{RGBAPixel, Centroid};
 use utils::{check_convergence, find_closest_centroid};
+use types::ColorVec;
 
 
 const MAX_ITERATIONS: usize = 300;
 const TOLERANCE: f32 = 0.02;
 
 
-fn num_distinct_colors(data: &[RGBAPixel]) -> usize {
+fn num_distinct_colors(data: &[ColorVec]) -> usize {
     let mut color_hashset = HashSet::new();
     for pixel in data {
         // hacky but its fine, it only occurs once at the beginning
-        let hash_key = pixel.0[0] as u8 * 2 + pixel.0[1] as u8 * 2 + pixel.0[2] as u8 * 2 + pixel.1;
+        let hash_key = pixel[0] as u8 * 2 + pixel[1] as u8 * 3 + pixel[2] as u8 * 5;
         color_hashset.insert(hash_key);
     }
     color_hashset.len()
@@ -29,13 +29,13 @@ fn num_distinct_colors(data: &[RGBAPixel]) -> usize {
 
 // Ok we're using the K-Means++ initialization
 // I think this is right? Seems to work
-pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
+pub fn initialize_centroids(data: &[ColorVec], k: usize) -> Vec<ColorVec> {
     let mut centroids = Vec::with_capacity(k);
     let mut rng = rand::thread_rng();
 
     // Choose the first centroid randomly
     if let Some(first_centroid) = data.choose(&mut rng) {
-        centroids.push(first_centroid.0);
+        centroids.push(first_centroid.clone());
     } else {
         return centroids; 
     }
@@ -47,7 +47,7 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
             .map(|pixel| {
                 centroids
                     .iter()
-                    .map(|centroid| utils::euclidean_distance(&pixel.into(), &centroid))
+                    .map(|centroid| utils::euclidean_distance(pixel, centroid))
                     .min_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap()
             })
@@ -61,7 +61,7 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
             cumulative_distance += distance;
             if cumulative_distance >= threshold {
                 let pixel = &data[i];
-                centroids.push(pixel.into());
+                centroids.push(pixel.clone());
                 break;
             }
         }
@@ -70,9 +70,9 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
     centroids
 }
 
-pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) {
+pub fn kmeans(data: &[ColorVec], k: usize) -> (Vec<Vec<usize>>, Vec<ColorVec>) {
     let mut centroids = initialize_centroids(data, k);
-    let mut new_centroids: Vec<Centroid> = centroids.clone();
+    let mut new_centroids: Vec<ColorVec> = centroids.clone();
 
     let mut clusters = vec![Vec::new(); k];
     let mut assignments = vec![0; data.len()];
@@ -105,17 +105,16 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
             let mut sum_b = 0.0;
             let num_pixels = cluster.len() as f32;
 
+
             for &idx in cluster {
                 let pixel = &data[idx];
-                sum_r += pixel.0[0];
-                sum_g += pixel.0[1];
-                sum_b += pixel.0[2];
+                sum_r += pixel[0];
+                sum_g += pixel[1];
+                sum_b += pixel[2];
             }
 
             *new_centroid = [sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
         });
-
-
         converged = check_convergence(&centroids, &new_centroids, TOLERANCE);
         // Swap the centroids and new_centroid. We'll update the new centroids again before
         // we check for convergence.
@@ -133,9 +132,9 @@ pub fn reduce_colorspace(
     pixels: &[u8],
     max_colors: usize
 ) -> Vec<u8> {
-    let image_data: Vec<RGBAPixel> = pixels
+    let image_data: Vec<ColorVec> = pixels
         .chunks_exact(4)
-        .map(|chunk| RGBAPixel::new(chunk[0], chunk[1], chunk[2], chunk[3]))
+        .map(|chunk| [chunk[0] as f32, chunk[1] as f32, chunk[2] as f32])
         .collect();
 
     if num_distinct_colors(&image_data) <= max_colors {
@@ -152,7 +151,7 @@ pub fn reduce_colorspace(
             new_color[0] as u8,
             new_color[1] as u8,
             new_color[2] as u8,
-            pixel.0[3] as u8 // retain original alpha
+            255
         ]);
     }
 
@@ -166,9 +165,9 @@ mod tests {
     #[test]
     fn test_kmeans_basic() {
         let data = vec![
-            RGBAPixel::new(255, 0, 0, 255),
-            RGBAPixel::new(0, 255, 0, 255),
-            RGBAPixel::new(0, 0, 255, 255),
+            [255.0, 0.0, 0.0],
+            [0.0, 255.0, 0.0],
+            [0.0, 0.0, 255.0],
         ];
         let k = 3;
         let (clusters, centroids) = kmeans(&data, k);
@@ -181,9 +180,9 @@ mod tests {
     #[test]
     fn test_kmeans_single_color() {
         let data = vec![
-            RGBAPixel::new(100, 100, 100, 255),
-            RGBAPixel::new(100, 100, 100, 255),
-            RGBAPixel::new(100, 100, 100, 255),
+            [100.0, 100.0, 100.0],
+            [100.0, 100.0, 100.0],
+            [100.0, 100.0, 100.0],
         ];
         let k = 2;
         let (clusters, centroids) = kmeans(&data, k);
@@ -196,8 +195,8 @@ mod tests {
     #[test]
     fn test_kmeans_two_distinct_colors() {
         let data = vec![
-            RGBAPixel::new(255, 0, 0, 255),
-            RGBAPixel::new(0, 0, 255, 255),
+            [255.0, 0.0, 0.0],
+            [0.0, 0.0, 255.0],
         ];
         let k = 2;
         let (clusters, centroids) = kmeans(&data, k);
@@ -209,8 +208,8 @@ mod tests {
     #[test]
     fn test_kmeans_more_clusters_than_colors() {
         let data = vec![
-            RGBAPixel::new(255, 0, 0, 255),
-            RGBAPixel::new(0, 255, 0, 255),
+            [255.0, 0.0, 0.0],
+            [0.0, 255.0, 0.0],
         ];
         let k = 3;
         let (clusters, centroids) = kmeans(&data, k);
