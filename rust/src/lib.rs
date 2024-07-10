@@ -1,13 +1,9 @@
-#[cfg(target_arch = "wasm")]
-use wasm_bindgen::prelude::*;
-
 use std::collections::HashSet;
 use rand::Rng;
 use rand::seq::SliceRandom;
-use packed_simd::f32x4;
 
 mod utils;
-mod types;
+pub mod types;
 
 use types::{RGBAPixel, Centroid};
 use utils::{check_convergence, find_closest_centroid};
@@ -33,7 +29,7 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
 
     // Choose the first centroid randomly
     if let Some(first_centroid) = data.choose(&mut rng) {
-        centroids.push(f32x4::new(first_centroid.r as f32, first_centroid.g as f32, first_centroid.b as f32, 0.0));
+        centroids.push([ first_centroid.r as f32, first_centroid.g as f32, first_centroid.b as f32 ]);
     } else {
         return centroids; 
     }
@@ -45,7 +41,7 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
             .map(|pixel| {
                 centroids
                     .iter()
-                    .map(|centroid| utils::euclidean_distance_simd(pixel.into(), *centroid))
+                    .map(|centroid| utils::euclidean_distance(&pixel.into(), &centroid))
                     .min_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap()
             })
@@ -70,9 +66,7 @@ pub fn initialize_centroids(data: &[RGBAPixel], k: usize) -> Vec<Centroid> {
 
 pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) {
     let mut centroids = initialize_centroids(data, k);
-    println!("len centroids: {}", centroids.len());
     let mut new_centroids: Vec<Centroid> = centroids.clone();
-    println!("len new_centroids: {}", new_centroids.len());
 
     let mut clusters = vec![Vec::new(); k];
     let mut assignments = vec![0; data.len()];
@@ -112,7 +106,7 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
                 sum_b += pixel.b as f32;
             }
 
-            *new_centroid = f32x4::new(sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels, 0.0);
+            *new_centroid = [sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
         });
 
 
@@ -126,7 +120,7 @@ pub fn kmeans(data: &[RGBAPixel], k: usize) -> (Vec<Vec<usize>>, Vec<Centroid>) 
     (clusters, centroids)
 }
 
-#[cfg_attr(target_arch = "wasm", wasm_bindgen)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn reduce_colorspace(
     width: u32,
     height: u32,
@@ -149,9 +143,9 @@ pub fn reduce_colorspace(
         let closest_centroid = find_closest_centroid(pixel, &centroids);
         let new_color = &centroids[closest_centroid];
         new_image.extend_from_slice(&[
-            new_color.extract(0) as u8,
-            new_color.extract(1) as u8,
-            new_color.extract(2) as u8,
+            new_color[0] as u8,
+            new_color[1] as u8,
+            new_color[2] as u8,
             pixel.a
         ]);
     }

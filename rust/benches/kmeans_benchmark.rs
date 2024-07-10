@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rust::{RGBAPixel, kmeans};
+use kmeanspp::{types::RGBAPixel, kmeans};
 use rand::Rng;
 
 fn generate_random_pixels(count: usize) -> Vec<RGBAPixel> {
