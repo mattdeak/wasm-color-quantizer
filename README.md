@@ -3,7 +3,7 @@ This is a simple tool I created to share a color reducer with a pixel artist fri
 
 ## Access
 
-You can access and use this tool [right here](https://mattdeak.github.io/kmeans-color-reducer/). It just runs in the browser.
+You can access and use this tool [right here](https://mattdeak.github.io/wasm-color-quantizer/). It just runs in the browser.
 
 ## How it Works
 
