@@ -1,0 +1,71 @@
+use numpy::ndarray::Axis;
+use numpy::PyReadonlyArray2;
+use numpy::PyReadonlyArray3;
+use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
+
+use numpy::{PyArray3, PyArray2};
+use crate::{kmeans_3chan, reduce_colorspace};
+
+
+#[pyfunction(name = "kmeans_3chan")]
+#[doc = "Perform k-means clustering on a 3-channel dataset. Expects nx3 array of floats, returns nxk array of labels and kx3 array of centroids"]
+fn py_kmeans_3chan(data: Vec<[f64; 3]>, k: usize) -> PyResult<(Py<PyArray2<usize>>, Py<PyArray2<f32>>)> {
+    let array = match numpy::ndarray::Array2::from_shape_vec((data.len(), 3), data) {
+        Ok(array) => array,
+        Err(e) => return Err(pyo3::exceptions::PyValueError::new_err(format!("Failed to create array: {}", e))),
+    };
+    let shape = array.shape();
+    if shape[1] != 3 {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!("Expected 3-channel data, got {} channels", shape[1])));
+    }
+
+    let array: Vec<[f32; 3]> = array.into_raw_vec().into_iter().map(|row| [row[0] as f32, row[1] as f32, row[2] as f32]).collect();
+
+    let (clusters, centroids) = kmeans_3chan(&array, k);
+    let centroids: Vec<Vec<f32>> = centroids.into_iter().map(|c| vec![c[0], c[1], c[2]]).collect();
+
+    Python::with_gil(|py| {
+        let clusters = PyArray2::from_vec2_bound(py, &clusters).expect("Failed to convert clusters to PyArray2");
+        let centroids = PyArray2::from_vec2_bound(py, &centroids).expect("Failed to convert centroids to PyArray2");
+        Ok((clusters.to_owned().into(), centroids.to_owned().into()))
+    })
+}
+
+
+#[pyfunction(name = "reduce_colorspace")]
+#[doc = "Reduce the colorspace of a 3-channel dataset. Expects nxm x 3 array of bytes, returns nxm x k array of bytes"]
+fn py_reduce_colorspace(data: PyReadonlyArray3<u8>, num_colors: i32, sample_rate: i32) -> PyResult<Py<PyArray3<u8>>> {
+    let array = data.as_array();
+    let shape = array.shape();
+    if shape[2] != 3 {
+        return Err(pyo3::exceptions::PyValueError::new_err(format!("Expected 3-channel data, got {} channels", shape[2])));
+    }
+
+    let flattened: Vec<u8> = array.lanes(Axis(2)).into_iter().map(|lane| {
+        let slice = lane.as_slice().unwrap();
+        [slice[0], slice[1], slice[2]]
+    }).flatten().collect();
+
+
+    let data = reduce_colorspace(&flattened, num_colors as usize, sample_rate as usize, 3);
+
+    let reshaped = match numpy::ndarray::Array3::from_shape_vec((shape[0], shape[1], 3), data) {
+        Ok(reshaped) => reshaped,
+        Err(e) => return Err(pyo3::exceptions::PyValueError::new_err(format!("Failed to reshape array: {}", e))),
+    };
+
+    Python::with_gil(|py| {
+        Ok(PyArray3::from_owned_array_bound(py, reshaped).to_owned().into())
+    })
+
+
+}
+
+
+#[pymodule]
+fn kmeanspp(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(py_kmeans_3chan, m)?)?;
+    m.add_function(wrap_pyfunction!(py_reduce_colorspace, m)?)?;
+    Ok(())
+}

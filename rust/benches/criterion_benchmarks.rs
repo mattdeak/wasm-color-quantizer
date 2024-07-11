@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use kmeanspp::{types::ColorVec, kmeans, utils};
+use kmeanspp::{types::ColorVec, kmeans_3chan, utils};
 use rand::Rng;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -27,7 +27,7 @@ fn benchmark_kmeans(c: &mut Criterion) {
         for &k in &k_values {
             let benchmark_name = format!("kmeans_size_{}_k_{}", size, k);
             c.bench_function(&benchmark_name, |b| {
-                b.iter(|| kmeans(black_box(&data), black_box(k)))
+                b.iter(|| kmeans_3chan(black_box(&data), black_box(k)))
             });
         }
     }

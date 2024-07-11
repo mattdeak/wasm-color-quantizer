@@ -1,6 +1,8 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+#[cfg(feature = "python")]
+pub mod python;
 
 use std::collections::HashSet;
 use rand::Rng;
@@ -70,7 +72,8 @@ pub fn initialize_centroids(data: &[ColorVec], k: usize) -> Vec<ColorVec> {
     centroids
 }
 
-pub fn kmeans(data: &[ColorVec], k: usize) -> (Vec<Vec<usize>>, Vec<ColorVec>) {
+/// A k-means optimized for 3 channel color images
+pub fn kmeans_3chan(data: &[ColorVec], k: usize) -> (Vec<Vec<usize>>, Vec<ColorVec>) {
     let mut centroids = initialize_centroids(data, k);
     let mut new_centroids: Vec<ColorVec> = centroids.clone();
 
@@ -127,13 +130,14 @@ pub fn kmeans(data: &[ColorVec], k: usize) -> (Vec<Vec<usize>>, Vec<ColorVec>) {
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen, target_feature(enable = "simd128"))]
 pub fn reduce_colorspace(
-    width: u32,
-    height: u32,
     pixels: &[u8],
-    max_colors: usize
+    max_colors: usize,
+    sample_rate: usize, // 1 = no sampling, 2 = sample every 2 pixels, 3 = sample every 3 pixels, etc
+    channels: usize // 3 = RGB, 4 = RGBA
 ) -> Vec<u8> {
     let image_data: Vec<ColorVec> = pixels
-        .chunks_exact(4)
+        .chunks_exact(channels)
+        .step_by(sample_rate)
         .map(|chunk| [chunk[0] as f32, chunk[1] as f32, chunk[2] as f32])
         .collect();
 
@@ -141,18 +145,28 @@ pub fn reduce_colorspace(
         return pixels.to_vec();
     }
 
-    let (_, centroids) = kmeans(&image_data, max_colors);
+    let (_, centroids) = kmeans_3chan(&image_data, max_colors);
 
-    let mut new_image = Vec::with_capacity(width as usize * height as usize * 4);
-    for pixel in image_data.iter() {
-        let closest_centroid = find_closest_centroid(pixel, &centroids);
+    let mut new_image = Vec::with_capacity(pixels.len());
+    for pixel in pixels.chunks_exact(channels) {
+        let px_vec = [pixel[0] as f32, pixel[1] as f32, pixel[2] as f32];
+        let closest_centroid = find_closest_centroid(&px_vec, &centroids);
         let new_color = &centroids[closest_centroid];
-        new_image.extend_from_slice(&[
-            new_color[0] as u8,
-            new_color[1] as u8,
-            new_color[2] as u8,
-            255
+
+        if channels == 3 {
+            new_image.extend_from_slice(&[
+                new_color[0] as u8,
+                new_color[1] as u8,
+                new_color[2] as u8,
+            ]);
+        } else {
+            new_image.extend_from_slice(&[
+                new_color[0] as u8,
+                new_color[1] as u8,
+                new_color[2] as u8,
+                pixel[3]
         ]);
+            }
     }
 
     new_image
@@ -161,6 +175,22 @@ pub fn reduce_colorspace(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wasm_bindgen_test::*;
+
+
+    #[wasm_bindgen_test]
+    fn test_reduce_colorspace() {
+        let data = vec![
+            255, 0, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255
+        ];
+        let max_colors = 2;
+        let sample_rate = 1;
+        let channels = 4;
+
+        let result = reduce_colorspace(&data, max_colors, sample_rate, channels);
+        assert_eq!(result.len(), data.len());
+    }
+
 
     #[test]
     fn test_kmeans_basic() {
@@ -170,7 +200,7 @@ mod tests {
             [0.0, 0.0, 255.0],
         ];
         let k = 3;
-        let (clusters, centroids) = kmeans(&data, k);
+        let (clusters, centroids) = kmeans_3chan(&data, k);
 
         assert_eq!(clusters.len(), k);
         assert_eq!(centroids.len(), k);
@@ -185,7 +215,7 @@ mod tests {
             [100.0, 100.0, 100.0],
         ];
         let k = 2;
-        let (clusters, centroids) = kmeans(&data, k);
+        let (clusters, centroids) = kmeans_3chan(&data, k);
 
         assert_eq!(clusters.len(), k);
         assert_eq!(centroids.len(), k);
@@ -199,7 +229,7 @@ mod tests {
             [0.0, 0.0, 255.0],
         ];
         let k = 2;
-        let (clusters, centroids) = kmeans(&data, k);
+        let (clusters, centroids) = kmeans_3chan(&data, k);
 
         assert_eq!(clusters.len(), k);
         assert_eq!(centroids.len(), k);
@@ -212,7 +242,7 @@ mod tests {
             [0.0, 255.0, 0.0],
         ];
         let k = 3;
-        let (clusters, centroids) = kmeans(&data, k);
+        let (clusters, centroids) = kmeans_3chan(&data, k);
 
         assert_eq!(clusters.len(), k);
         assert_eq!(centroids.len(), k);

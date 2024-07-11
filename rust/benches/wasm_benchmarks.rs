@@ -1,6 +1,6 @@
 // #![cfg(target_arch = "wasm32")]
 
-use kmeanspp::{types::ColorVec, kmeans};
+use kmeanspp::{types::ColorVec, kmeans_3chan};
 use rand::Rng;
 use std::time::{Instant, Duration};
 use statrs::{self, statistics::Statistics};
@@ -30,7 +30,7 @@ pub extern "C" fn benchmark() -> f64 {
             let warmup_start = Instant::now();
             while warmup_start.elapsed() < warmup_duration {
                 let warmup_data = generate_random_pixels(size);
-                kmeans(&warmup_data, k);
+                kmeans_3chan(&warmup_data, k);
             }
 
             let mut times = Vec::with_capacity(iterations);
@@ -38,7 +38,7 @@ pub extern "C" fn benchmark() -> f64 {
             for _ in 0..iterations {
                 let data = generate_random_pixels(size);
                 let start = Instant::now();
-                kmeans(&data, k);
+                kmeans_3chan(&data, k);
                 let duration = start.elapsed();
                 times.push(duration.as_secs_f64());
             }

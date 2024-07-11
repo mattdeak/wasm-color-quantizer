@@ -70,18 +70,18 @@ function getArrayU8FromWasm0(ptr, len) {
     return getUint8Memory0().subarray(ptr / 1, ptr / 1 + len);
 }
 /**
-* @param {number} width
-* @param {number} height
 * @param {Uint8Array} pixels
 * @param {number} max_colors
+* @param {number} sample_rate
+* @param {number} channels
 * @returns {Uint8Array}
 */
-export function reduce_colorspace(width, height, pixels, max_colors) {
+export function reduce_colorspace(pixels, max_colors, sample_rate, channels) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passArray8ToWasm0(pixels, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        wasm.reduce_colorspace(retptr, width, height, ptr0, len0, max_colors);
+        wasm.reduce_colorspace(retptr, ptr0, len0, max_colors, sample_rate, channels);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var v2 = getArrayU8FromWasm0(r0, r1).slice();
