@@ -1,4 +1,4 @@
-# K-Means Color Reducer
+# K-Means Color Quantizer
 This is a simple tool I created to share a color reducer with a pixel artist friend. It's a quick but pretty good way to reduce the number of colors in an image using the K-means++ clustering algorithm.
 
 ## Access
