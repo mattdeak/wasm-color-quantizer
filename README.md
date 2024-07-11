@@ -1,13 +1,17 @@
-# K-Means Color Quantizer
+# WASM Color Quantizer
 This is a simple tool I created to share a color reducer with a pixel artist friend. It's a quick but pretty good way to reduce the number of colors in an image using the K-means++ clustering algorithm.
 
-## Access
+<p align="center">
+  <img src="https://github.com/mattdeak/wasm-color-quantizer/assets/17998873/158dc6ac-f899-4cd4-991d-61cf616890d8" alt="Demo Gif" />
+</p>
 
+## Access
 You can access and use this tool [right here](https://mattdeak.github.io/wasm-color-quantizer/). It just runs in the browser.
 
 ## How it Works
-
 This color reducer uses Rust compiled to WebAssembly (WASM) to perform the K-means calculation quickly and efficiently in the browser.
 Will update soon with better sampling to handle very large N-color requests or humongous images (bigger than any reasonable image would be).
+
+I might eventually get around to splitting out the Rust package if I add enough functionality (other clustering methods, maybe), but feel free to clone this and rip it all out if you want.
 
 Feel free to use this tool for whatever you like.
