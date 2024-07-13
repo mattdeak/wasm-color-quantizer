@@ -1,4 +1,5 @@
 /rust/target
+/rust/pkg
 /benchmark_history
 .venv
 

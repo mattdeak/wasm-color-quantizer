@@ -42,8 +42,8 @@ impl WasmColorCruncher {
     ///
     /// @param {Algorithm} algorithm - The algorithm to use for quantization.
     /// @returns {ColorQuantizer} - The ColorQuantizer instance.
-    #[wasm_bindgen(skip_jsdoc)]
-    pub fn setAlgorithm(&mut self, algorithm: Algorithm) {
+    #[wasm_bindgen(skip_jsdoc, js_name = setAlgorithm)]
+    pub fn set_algorithm(&mut self, algorithm: Algorithm) {
         let converted_algorithm = match algorithm.as_str() {
             "lloyd" => crate::kmeans::KMeansAlgorithm::Lloyd,
             "hamerly" => crate::kmeans::KMeansAlgorithm::Hamerly,
@@ -52,13 +52,13 @@ impl WasmColorCruncher {
         self.0 = self.0.clone().with_algorithm(converted_algorithm);
     }
 
-    #[wasm_bindgen]
-    pub fn setMaxIterations(&mut self, max_iterations: u32) {
+    #[wasm_bindgen(js_name = setMaxIterations)]
+    pub fn set_max_iterations(&mut self, max_iterations: u32) {
         self.0 = self.0.clone().with_max_iterations(max_iterations.try_into().unwrap());
     }
 
-    #[wasm_bindgen]
-    pub fn setMaxColors(&mut self, max_colors: u32) {
+    #[wasm_bindgen(js_name = setMaxColors)]
+    pub fn set_max_colors(&mut self, max_colors: u32) {
         self.0 = self.0.clone().with_max_colors(max_colors.try_into().unwrap());
     }
 
@@ -68,8 +68,8 @@ impl WasmColorCruncher {
     ///
     /// @param {Format} format - The format of the image.
     /// @returns {ColorQuantizer} - The ColorQuantizer instance.
-    #[wasm_bindgen(skip_jsdoc)]
-    pub fn setFormat(&mut self, format: Format) {
+    #[wasm_bindgen(skip_jsdoc, js_name = setFormat)]
+    pub fn set_format(&mut self, format: Format) {
         let converted_channels = match format.as_str() {
             "RGB" => 3,
             "RGBA" => 4,
@@ -78,22 +78,22 @@ impl WasmColorCruncher {
         self.0 = self.0.clone().with_channels(converted_channels);
     }
 
-    #[wasm_bindgen]
-    pub fn setTolerance(&mut self, tolerance: f64) {
+    #[wasm_bindgen(js_name = setTolerance)]
+    pub fn set_tolerance(&mut self, tolerance: f64) {
         self.0 = self.0.clone().with_tolerance(tolerance);
     }
 
-    #[wasm_bindgen]
-    pub fn setSampleRate(&mut self, sample_rate: u32) {
+    #[wasm_bindgen(js_name = setSampleRate)]
+    pub fn set_sample_rate(&mut self, sample_rate: u32) {
         self.0 = self.0.clone().with_sample_rate(sample_rate.try_into().unwrap());
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = quantizeImage)]
     pub fn quantize_image(&self, data: &[u8]) -> Vec<u8> {
         self.0.clone().quantize_image(data)
     }
 
-    #[wasm_bindgen]
+    #[wasm_bindgen(js_name = createPalette)]
     pub fn create_palette(&self, data: &[u8]) -> Vec<u8> {
         self.0.create_palette(data).iter().map(|color| color.to_vec()).flatten().collect()
     }

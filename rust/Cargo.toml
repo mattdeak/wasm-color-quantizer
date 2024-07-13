@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Matthew Deakos <mwoolnerdeakos@gmail.com>"]
 license = "MIT"
-description = "A fast, wasm-compatible color quantization library for Rust"
+description = "A fast, wasm-compatible color quantization library written in Rust"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
