@@ -58,13 +58,14 @@ pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Ce
             centroid_move_distances[j] = distance;
         }
 
-        std::mem::swap(&mut centroids, &mut new_centroids);
-
         // We can optimize this by keeping a running total, but I doubt it's a bottleneck so
         // TODO maybe look into it
         if has_converged(&centroids, &new_centroids, config.tolerance) {
+            std::mem::swap(&mut centroids, &mut new_centroids);
             break;
         }
+        std::mem::swap(&mut centroids, &mut new_centroids);
+
         update_bounds(&mut upper_bounds, &mut lower_bounds, &centroid_move_distances, &clusters)
     }
     (clusters, centroids)

@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use numpy::{PyArray3, PyArray2, PyArray1};
-use crate::{kmeans::kmeans, kmeans::KMeansConfig, reduce_colorspace};
+use crate::{kmeans::kmeans, kmeans::KMeansConfig, quantize::Quantizer};
 
 
 #[pyfunction(name = "kmeans_3chan")]
@@ -52,7 +52,8 @@ fn py_reduce_colorspace(data: PyReadonlyArray3<u8>, num_colors: i32, sample_rate
     }).flatten().collect();
 
 
-    let data = reduce_colorspace(&flattened, num_colors as usize, sample_rate as usize, 3);
+    let quantizer = Quantizer::new(num_colors as usize, sample_rate as usize, 3);
+    let data = quantizer.quantize(&flattened);
 
     let reshaped = match numpy::ndarray::Array3::from_shape_vec((shape[0], shape[1], 3), data) {
         Ok(reshaped) => reshaped,

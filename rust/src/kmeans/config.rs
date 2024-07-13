@@ -1,7 +1,15 @@
+use std::fmt;
+
 #[derive(Debug, Clone)]
 pub enum KMeansAlgorithm {
     Lloyd,
     Hamerly,
+}
+
+impl fmt::Display for KMeansAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -21,5 +29,11 @@ impl Default for KMeansConfig {
             tolerance: 0.02,
             algorithm: KMeansAlgorithm::Lloyd,
         }
+    }
+}
+
+impl fmt::Display for KMeansConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
     }
 }

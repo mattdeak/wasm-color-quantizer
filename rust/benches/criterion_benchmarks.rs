@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use kmeanspp::{types::ColorVec, kmeans::KMeans, kmeans::KMeansAlgorithm};
+use kmeanspp::{types::ColorVec, kmeans::{KMeans, KMeansAlgorithm}};
 use rand::Rng;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -9,26 +9,33 @@ fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
         .map(|_| [
-            rng.gen(),
-            rng.gen(),
-            rng.gen(),
+            rng.gen::<f32>() * 255.0,
+            rng.gen::<f32>() * 255.0,
+            rng.gen::<f32>() * 255.0,
         ])
         .collect()
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn benchmark_kmeans(c: &mut Criterion) {
+fn benchmark_kmeans_comparison(c: &mut Criterion) {
     let k_values = [2, 4, 8, 16];
-    let data_sizes = [1000, 10000, 100000];
+    let data_sizes = [1000, 10000, 100000, 500000];
 
     for &size in &data_sizes {
         let data = generate_random_pixels(size);
         
         for &k in &k_values {
-            let benchmark_name = format!("kmeans_size_{}_k_{}", size, k);
-            c.bench_function(&benchmark_name, |b| {
-                b.iter(|| KMeans::new(black_box(k)).run(black_box(&data)))
+            let mut group = c.benchmark_group(format!("kmeans_size_{}_k_{}", size, k));
+
+            group.bench_function("Hamerly", |b| {
+                b.iter(|| black_box(KMeans::new(black_box(k)).with_algorithm(KMeansAlgorithm::Hamerly).run(black_box(&data))))
             });
+
+            group.bench_function("Lloyd", |b| {
+                b.iter(|| black_box(KMeans::new(black_box(k)).with_algorithm(KMeansAlgorithm::Lloyd).run(black_box(&data))))
+            });
+
+            group.finish();
         }
     }
 }
@@ -59,7 +66,7 @@ fn benchmark_find_closest_centroid(c: &mut Criterion) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-criterion_group!(benches, benchmark_kmeans, benchmark_euclidean_distance, benchmark_find_closest_centroid);
+criterion_group!(benches, benchmark_kmeans_comparison, benchmark_euclidean_distance, benchmark_find_closest_centroid);
 
 #[cfg(not(target_arch = "wasm32"))]
 criterion_main!(benches);

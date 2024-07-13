@@ -9,9 +9,9 @@ fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
         .map(|_| [
-            rng.gen(),
-            rng.gen(),
-            rng.gen(),
+            rng.gen::<f32>() * 255.0,
+            rng.gen::<f32>() * 255.0,
+            rng.gen::<f32>() * 255.0,
         ])
         .collect()
 }
@@ -35,7 +35,7 @@ pub extern "C" fn benchmark() -> f64 {
             let warmup_start = Instant::now();
             while warmup_start.elapsed() < warmup_duration {
                 let warmup_data = generate_random_pixels(size);
-                kmeans.run(&warmup_data);
+                kmeans.run(&warmup_data).unwrap();
             }
 
             let mut times = Vec::with_capacity(iterations);
@@ -43,7 +43,7 @@ pub extern "C" fn benchmark() -> f64 {
             for _ in 0..iterations {
                 let data = generate_random_pixels(size);
                 let start = Instant::now();
-                kmeans.run(&data);
+                kmeans.run(&data).unwrap();
                 let duration = start.elapsed();
                 times.push(duration.as_secs_f64());
             }

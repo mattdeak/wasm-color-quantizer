@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const processedImage = document.getElementById('processedImage');
     const processingIndicator = document.getElementById('processingIndicator');
     let uploadedImage = null;
+    const algorithm = document.getElementById('algorithm');
+    const maxIterations = document.getElementById('maxIterations');
+    const tolerance = document.getElementById('tolerance');
 
     imageUpload.addEventListener('change', handleImageUpload);
     imagePreview.addEventListener('dragover', handleDragOver);
@@ -49,39 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     }
 
-    function predictOutputTime(totalPixels, maxColors) {
-        return (
-            6.7057e-06 * totalPixels +
-                -4.6229e+00 * maxColors +
-                8.4536e-03 * Math.log(totalPixels) +
-                -8.1105e-01 * Math.log(maxColors) +
-                3.1318e-07 * totalPixels * maxColors +
-                -2.5181e-07 * totalPixels * Math.log(totalPixels) +
-                -2.1015e-06 * totalPixels * Math.log(maxColors) +
-                -8.5418e-02 * Math.pow(maxColors, 2) +
-                -1.6574e-01 * maxColors * Math.log(totalPixels) +
-                2.8262e+00 * maxColors * Math.log(maxColors) +
-                -1.5364e-01 * Math.pow(Math.log(totalPixels), 2) +
-                2.2803e+00 * Math.log(totalPixels) * Math.log(maxColors) +
-                -8.1863e+00 * Math.pow(Math.log(maxColors), 2) +
-                1.1316e+01  // Intercept
-        ) * 3 // WASM slowdown factor (est)
-    }
-
     function getBestSampleRate(totalPixels, maxColors) {
-        // This function sucks and doesn't work
-        let bestSampleRate = 1;
-
-        for (let i = 1; i <= Math.min(totalPixels, 100); i++) {
-            const sampledPixels = Math.ceil(totalPixels / i);
-            const time = predictOutputTime(sampledPixels * 3, maxColors);
-            console.log(`Sample rate for ${sampledPixels} pixels: ${time}ms`);
-            if (time < 500) { // 1000 ms = 1 second
-                bestSampleRate = i;
-                break;
-            }
-        }
-        return bestSampleRate;
+        // TODO: lol
+        return 1;
     }
 
     processBtn.addEventListener('click', async () => {
@@ -99,13 +72,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 const numColors = parseInt(colorCount.value);
+                const selectedAlgorithm = algorithm.value;
+                const maxIter = parseInt(maxIterations.value);
+                const tol = parseFloat(tolerance.value);
 
                 console.log(`Image data length: ${imageData.data.length}`);
                 const sampleRate = getBestSampleRate(imageData.data.length / 4, numColors);
                 console.log(`Selected Sample rate: ${sampleRate}`);
 
                 // data, max colors, sample rate, # channels in image data
-                const processedData = reduce_colorspace(imageData.data, numColors, sampleRate, 4);
+                let quantizer = new ColorQuantizer(numColors, sampleRate, 4);
+
+                quantizer = quantizer.withAlgorithm(selectedAlgorithm);
+                quantizer = quantizer.withMaxIterations(maxIter);
+                quantizer = quantizer.withTolerance(tol);
+
+                const processedData = quantizer.quantize(imageData.data);
                 const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
                     colorSpace: 'srgb'
                 });
