@@ -7,7 +7,7 @@ use crate::kmeans::distance::SquaredEuclideanDistance;
 
 // Return the index of closest centroid and distance to that centroid
 pub fn find_closest_centroid(pixel: &ColorVec, centroids: &[ColorVec]) -> usize {
-    debug_assert!(centroids.len() > 0);
+    debug_assert!(!centroids.is_empty());
     let mut min_distance = euclidean_distance_squared(pixel, &centroids[0]);
     let mut min_index = 0;
     for (i, centroid) in centroids.iter().enumerate() {

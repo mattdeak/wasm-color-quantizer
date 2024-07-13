@@ -16,7 +16,7 @@ impl VectorExt<ColorVec> for ColorVec {
     }
 
     fn div_scalar(&self, scalar: f32) -> Self {
-        return [self[0] / scalar, self[1] / scalar, self[2] / scalar];
+        [self[0] / scalar, self[1] / scalar, self[2] / scalar]
     }
 
     fn sub(&self, other: &ColorVec) -> Self {
