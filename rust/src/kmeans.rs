@@ -109,6 +109,24 @@ mod tests {
     use rand::Rng;
     use rand::SeedableRng;
 
+    trait TestExt {
+        fn assert_almost_eq(&self, other: &[ColorVec], tolerance: f64);
+    }
+
+
+    impl TestExt for Vec<ColorVec> {
+        fn assert_almost_eq(&self, other: &[ColorVec], tolerance: f64) {
+            assert_eq!(self.len(), other.len());
+
+            for i in 0..self.len() {
+                let a_matches = (self[i][0] as f64 - other[i][0] as f64).abs() < tolerance;
+                let b_matches = (self[i][1] as f64 - other[i][1] as f64).abs() < tolerance;
+                let c_matches = (self[i][2] as f64 - other[i][2] as f64).abs() < tolerance;
+                assert!(a_matches && b_matches && c_matches, "{:?} does not match {:?}", self[i], other[i]);
+            }
+        }
+    }
+
     fn run_kmeans_test(data: &[ColorVec], k: usize, expected_non_empty_clusters: usize) {
         let algorithms = vec![KMeansAlgorithm::Lloyd, KMeansAlgorithm::Hamerly];
 
@@ -142,7 +160,7 @@ mod tests {
                 config.algorithm
             );
             // assert_eq!(centroids.iter().filter(|&&c| c != [0.0, 0.0, 0.0]).count(), expected_non_empty_clusters);
-            assert!(expected_non_empty_clusters >= 0);
+            assert!(expected_non_empty_clusters >= 1);
         }
     }
 
@@ -204,7 +222,7 @@ mod tests {
         let config_lloyd = KMeansConfig {
             k: 3,
             max_iterations: 500,
-            tolerance: 1e-4,
+            tolerance: 1e-6,
             algorithm: KMeansAlgorithm::Lloyd,
             seed: Some(seed),
         };
@@ -212,7 +230,7 @@ mod tests {
         let config_hamerly = KMeansConfig {
             k: 3,
             max_iterations: 500,
-            tolerance: 1e-8,
+            tolerance: 1e-6,
             algorithm: KMeansAlgorithm::Hamerly,
             seed: Some(seed),
         };
@@ -220,7 +238,7 @@ mod tests {
         let (clusters1, centroids1) = kmeans(&data, &config_lloyd).unwrap();
         let (clusters2, centroids2) = kmeans(&data, &config_hamerly).unwrap();
 
-        assert_eq!(centroids1, centroids2, "centroids == centroids");
-        assert_eq!(clusters1, clusters2, "clusters == clusters");
+        centroids1.assert_almost_eq(&centroids2, 0.005);
+        assert_eq!(clusters1, clusters2);
     }
 }

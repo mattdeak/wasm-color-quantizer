@@ -1,4 +1,5 @@
 use crate::kmeans::config::KMeansConfig;
+use crate::kmeans::distance::EuclideanDistance;
 use crate::kmeans::utils::{find_closest_centroid, has_converged, initialize_centroids};
 use crate::types::ColorVec;
 
@@ -49,10 +50,7 @@ pub fn kmeans_lloyd(data: &[ColorVec], config: &KMeansConfig) -> (Vec<usize>, Ve
 
                 *new_centroid = [sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
             });
-        converged = has_converged(&centroids, &new_centroids, config.tolerance);
-        if converged {
-            dbg!("Converged in {} iterations", iterations);
-        }
+        converged = has_converged(&centroids, &new_centroids, EuclideanDistance(config.tolerance));
         // Swap the centroids and new_centroid. We'll update the new centroids again before
         // we check for convergence.
         std::mem::swap(&mut centroids, &mut new_centroids);

@@ -1,15 +1,16 @@
 use crate::kmeans::config::KMeansConfig;
-use crate::kmeans::distance::euclidean_distance_squared;
+use crate::kmeans::distance::{euclidean_distance_squared, EuclideanDistance, SquaredEuclideanDistance};
 use crate::kmeans::utils::{has_converged, initialize_centroids};
 use crate::types::{ColorVec, VectorExt};
 
 // Some utility type aliases for readability
 type Centroids = Vec<ColorVec>;
 type CentroidSums = Vec<ColorVec>;
-type UpperBounds = Vec<f32>;
-type LowerBounds = Vec<f32>;
 type Clusters = Vec<usize>;
 type CentroidCounts = Vec<usize>;
+
+type UpperBounds = Vec<EuclideanDistance>;
+type LowerBounds = Vec<EuclideanDistance>;
 
 pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Centroids) {
     let (
@@ -21,74 +22,65 @@ pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Ce
         mut clusters,
     ) = initialize_hamerly(data, config);
 
-    let mut centroid_move_distances = vec![0.0; config.k];
-    let mut centroid_neighbor_distances = vec![f32::MAX; config.k];
+    let mut centroid_move_distances = vec![EuclideanDistance(0.0); config.k];
+    let mut centroid_neighbor_distances = vec![EuclideanDistance(f32::MAX); config.k];
     let mut new_centroids = centroids.clone();
 
     let num_pixels = data.len();
     let k = config.k;
+
 
     // I need to check this but I think it should ensure
     // we don't get any bounds checks?
     // If the compiler is smart enough, that is.
     assert!(num_pixels >= k);
 
-    for iterations in 0..config.max_iterations {
-        // Compute neighbor distances
-        for (j, (centroid, neighbor_distance)) in centroids
-            .iter()
-            .zip(centroid_neighbor_distances.iter_mut())
-            .enumerate()
-        {
-            for (k, other_centroid) in centroids.iter().enumerate() {
-                if j != k {
-                    let distance = euclidean_distance_squared(centroid, other_centroid);
-                    if distance < *neighbor_distance {
-                        *neighbor_distance = distance;
-                    }
-                }
-            }
-        }
+    for _ in 0..config.max_iterations {
+        compute_neighbor_distances(&centroids, &mut centroid_neighbor_distances);
 
         // Update bounds and clusters
         for i in 0..num_pixels {
-            // Is this correct? hmm
-            let m = upper_bounds[i].max(centroid_neighbor_distances[clusters[i]] / 2.);
-            if upper_bounds[i] > m {
-                // tighten upper bound here
-                upper_bounds[i] = euclidean_distance_squared(&centroids[clusters[i]], &data[i]);
-                if upper_bounds[i] > m {
-                    let (best_distance, second_best_distance, best_index) =
-                        find_best_and_second_best(&centroids, &data[i]);
-                    if best_index != clusters[i] {
-                        upper_bounds[clusters[i]] = best_distance;
-                        lower_bounds[best_index] = second_best_distance;
-                        clusters[i] = best_index;
+            let m = lower_bounds[i].max(&(centroid_neighbor_distances[clusters[i]] / (2.).into()));
 
-                        // Update centroid sums and counts
-                        centroid_sums[best_index] = centroid_sums[best_index].add(&data[i]);
-                        centroid_sums[clusters[i]] = centroid_sums[clusters[i]].sub(&data[i]);
-                        centroid_counts[best_index] += 1;
-                        centroid_counts[clusters[i]] -= 1;
-                    }
-                }
+            if upper_bounds[i] <= m {
+                continue;
             }
-        }
 
-        // Move centroids
-        // Also, see TODO underneath
-        for (j, (current_centroid, new_centroid)) in
-            centroids.iter().zip(new_centroids.iter_mut()).enumerate()
-        {
-            let distance = euclidean_distance_squared(current_centroid, new_centroid);
-            *new_centroid = centroid_sums[j].div_scalar(centroid_counts[j] as f32);
-            centroid_move_distances[j] = distance;
+            // tighten upper bound here
+            upper_bounds[i] = euclidean_distance_squared(&centroids[clusters[i]], &data[i]).sqrt();
+
+            // Second bounds check, we might still not need to perform the scan.
+            if upper_bounds[i] <= m {
+                continue;
+            }
+
+            // If we've made it this far, then we need to update.
+            // otherwise a bound check would have been triggered.
+
+            let (best_distance, second_best_distance, best_index) =
+                find_best_and_second_best(&centroids, &data[i]);
+
+            upper_bounds[i] = best_distance;
+            lower_bounds[i] = second_best_distance;
+
+            if best_index != clusters[i] {
+                centroid_sums[clusters[i]] = centroid_sums[clusters[i]].sub(&data[i]);
+                centroid_counts[clusters[i]] -= 1;
+
+                centroid_sums[best_index] = centroid_sums[best_index].add(&data[i]);
+                centroid_counts[best_index] += 1;
+
+                clusters[i] = best_index;
+            }
+
+
         }
+        // Move centroids into new_centroids (we swap later)
+        move_centroids(&mut centroids, &mut new_centroids, &mut centroid_sums, &mut centroid_counts, &mut centroid_move_distances);
 
         // We can optimize this by keeping a running total, but I doubt it's a bottleneck so
         // TODO maybe look into it
-        if has_converged(&centroids, &new_centroids, config.tolerance) {
-            dbg!("Converged in {} iterations", iterations);
+        if has_converged(&centroids, &new_centroids, EuclideanDistance(config.tolerance)) {
             std::mem::swap(&mut centroids, &mut new_centroids);
             break;
         }
@@ -101,7 +93,7 @@ pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Ce
             &clusters,
         )
     }
-    (clusters, centroids)
+    (clusters.to_vec(), centroids.to_vec())
 }
 
 fn initialize_hamerly(
@@ -120,8 +112,8 @@ fn initialize_hamerly(
 
     let num_pixels = data.len();
     let mut clusters = vec![0; num_pixels];
-    let mut upper_bounds = vec![0.0; num_pixels];
-    let mut lower_bounds = vec![0.0; num_pixels];
+    let mut upper_bounds = vec![EuclideanDistance(0.0); num_pixels];
+    let mut lower_bounds = vec![EuclideanDistance(0.0); num_pixels];
 
     let mut centroid_sums = vec![[0., 0., 0.]; config.k];
     let mut centroid_counts = vec![0; config.k];
@@ -149,9 +141,9 @@ fn initialize_hamerly(
     )
 }
 
-fn find_best_and_second_best(centroids: &[ColorVec], point: &ColorVec) -> (f32, f32, usize) {
-    let mut best_distance = f32::MAX;
-    let mut second_best_distance = f32::MAX;
+fn find_best_and_second_best(centroids: &[ColorVec], point: &ColorVec) -> (EuclideanDistance, EuclideanDistance, usize) {
+    let mut best_distance = SquaredEuclideanDistance(f32::MAX);
+    let mut second_best_distance = SquaredEuclideanDistance(f32::MAX);
     let mut best_index = 0;
 
     for (j, centroid) in centroids.iter().enumerate() {
@@ -165,18 +157,19 @@ fn find_best_and_second_best(centroids: &[ColorVec], point: &ColorVec) -> (f32, 
         }
     }
 
-    (best_distance, second_best_distance, best_index)
+    // We need to square root before returning as we're comparing squared distances.
+    (best_distance.sqrt(), second_best_distance.sqrt(), best_index)
 }
 
 fn update_bounds(
-    upper_bounds: &mut UpperBounds,
-    lower_bounds: &mut LowerBounds,
-    distances: &[f32],
+    upper_bounds: &mut [EuclideanDistance],
+    lower_bounds: &mut [EuclideanDistance],
+    distances: &[EuclideanDistance],
     clusters: &[usize],
 ) {
     let (r1, r1_distance, _, r2_distance) = {
-        let mut r1_distance = f32::MIN;
-        let mut r2_distance = f32::MIN;
+        let mut r1_distance = EuclideanDistance(f32::MIN);
+        let mut r2_distance = EuclideanDistance(f32::MIN);
 
         let mut r1_index = 0;
         let mut r2_index = 0;
@@ -202,5 +195,38 @@ fn update_bounds(
         } else {
             lower_bounds[i] -= r1_distance;
         }
+    }
+}
+
+
+fn compute_neighbor_distances(
+    centroids: &[ColorVec],
+    distances: &mut [EuclideanDistance],
+) {
+    for (i, centroid) in centroids.iter().enumerate() {
+        distances[i] = EuclideanDistance(f32::MAX);
+        for (j, other_centroid) in centroids.iter().enumerate() {
+            if i == j {
+                continue;
+            }
+            // We need to square root here because the bounds check assumes true distances.
+            distances[i] = distances[i].min(&euclidean_distance_squared(centroid, other_centroid).sqrt());
+        }
+    }
+}
+
+fn move_centroids(
+    centroids: &mut [ColorVec],
+    new_centroids: &mut [ColorVec],
+    centroid_sums: &mut [ColorVec],
+    centroid_counts: &mut [usize],
+    centroid_move_distances: &mut [EuclideanDistance]
+) {
+    for (j, (current_centroid, new_centroid)) in
+        centroids.iter().zip(new_centroids.iter_mut()).enumerate()
+    {
+        *new_centroid = centroid_sums[j].div_scalar(centroid_counts[j] as f32);
+        // We need to square root here because the bounds check assumes true distances.
+        centroid_move_distances[j] = euclidean_distance_squared(current_centroid, new_centroid).sqrt();
     }
 }
