@@ -1,6 +1,6 @@
 // #![cfg(target_arch = "wasm32")]
 
-use kmeanspp::{types::ColorVec, kmeans::KMeans};
+use colorcrunch::{types::ColorVec, kmeans::KMeans};
 use rand::Rng;
 use std::time::{Instant, Duration};
 use statrs::{self, statistics::Statistics};
@@ -23,7 +23,7 @@ pub extern "C" fn benchmark() -> f64 {
     let iterations = 100;
     let warmup_duration = Duration::from_secs(3);
     let mut total_time = 0.0;
-    let algorithm = kmeanspp::kmeans::KMeansAlgorithm::Hamerly;
+    let algorithm = colorcrunch::kmeans::KMeansAlgorithm::Hamerly;
 
     for &size in &data_sizes {
         for &k in &k_values {

@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use kmeanspp::{types::ColorVec, kmeans::{KMeans, KMeansAlgorithm}};
+use colorcrunch::{types::ColorVec, kmeans::{KMeans, KMeansAlgorithm}};
 use rand::Rng;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -42,7 +42,7 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_euclidean_distance(c: &mut Criterion) {
-    use kmeanspp::kmeans;
+    use colorcrunch::kmeans;
 
     let mut rng = rand::thread_rng();
     let a: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
@@ -55,7 +55,7 @@ fn benchmark_euclidean_distance(c: &mut Criterion) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_find_closest_centroid(c: &mut Criterion) {
-    use kmeanspp::kmeans;
+    use colorcrunch::kmeans;
     let mut rng = rand::thread_rng();
     let pixel = [rng.gen(), rng.gen(), rng.gen()];
     let centroids: Vec<ColorVec> = (0..100).map(|_| [rng.gen(), rng.gen(), rng.gen()]).collect();

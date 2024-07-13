@@ -1,7 +1,10 @@
 [package]
-name = "kmeanspp"
+name = "colorcrunch"
 version = "0.1.0"
 edition = "2021"
+authors = ["Matthew Deakos <mwoolnerdeakos@gmail.com>"]
+license = "MIT"
+description = "A fast, wasm-compatible color quantization library for Rust"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

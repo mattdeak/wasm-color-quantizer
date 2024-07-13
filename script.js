@@ -81,13 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Selected Sample rate: ${sampleRate}`);
 
                 // data, max colors, sample rate, # channels in image data
-                let quantizer = new ColorQuantizer(numColors, sampleRate, 4);
+                let cruncher = new ColorCruncher(numColors, sampleRate, "RGBA");
 
-                quantizer = quantizer.withAlgorithm(selectedAlgorithm);
-                quantizer = quantizer.withMaxIterations(maxIter);
-                quantizer = quantizer.withTolerance(tol);
+                cruncher.setAlgorithm(selectedAlgorithm);
+                cruncher.setMaxIterations(maxIter);
+                cruncher.setTolerance(tol);
 
-                const processedData = quantizer.quantize(imageData.data);
+                const processedData = cruncher.quantize_image(imageData.data);
                 const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
                     colorSpace: 'srgb'
                 });

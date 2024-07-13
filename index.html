@@ -64,11 +64,11 @@
 
     <script src="script.js"></script>
     <script type="module">
-        import init, { ColorQuantizer } from './pkg/kmeanspp.js';
+        import init, { ColorCruncher } from './pkg/colorcrunch.js';
         
         async function initWasm() {
           await init();
-          window.ColorQuantizer = ColorQuantizer;
+          window.ColorCruncher = ColorCruncher;
         }
         
         initWasm();

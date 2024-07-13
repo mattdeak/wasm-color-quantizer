@@ -132,31 +132,23 @@ function handleError(f, args) {
     }
 }
 
-const ColorQuantizerFinalization = (typeof FinalizationRegistry === 'undefined')
+const ColorCruncherFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_colorquantizer_free(ptr >>> 0));
+    : new FinalizationRegistry(ptr => wasm.__wbg_colorcruncher_free(ptr >>> 0));
 /**
 */
-export class ColorQuantizer {
-
-    static __wrap(ptr) {
-        ptr = ptr >>> 0;
-        const obj = Object.create(ColorQuantizer.prototype);
-        obj.__wbg_ptr = ptr;
-        ColorQuantizerFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
-    }
+export class ColorCruncher {
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-        ColorQuantizerFinalization.unregister(this);
+        ColorCruncherFinalization.unregister(this);
         return ptr;
     }
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_colorquantizer_free(ptr);
+        wasm.__wbg_colorcruncher_free(ptr);
     }
     /**
     *
@@ -166,12 +158,12 @@ export class ColorQuantizer {
     *
     * @param {u32} max_colors - The maximum number of colors to quantize to.
     * @param {u32} sample_rate - The sample rate for the quantization.
-    * @param {Channels} channels - The number of channels in the image.
+    * @param {Format} format - The format of the image.
     */
-    constructor(max_colors, sample_rate, channels) {
-        const ptr0 = passStringToWasm0(channels, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    constructor(max_colors, sample_rate, format) {
+        const ptr0 = passStringToWasm0(format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.colorquantizer_new(max_colors, sample_rate, ptr0, len0);
+        const ret = wasm.colorcruncher_new(max_colors, sample_rate, ptr0, len0);
         this.__wbg_ptr = ret >>> 0;
         return this;
     }
@@ -181,74 +173,77 @@ export class ColorQuantizer {
     * @param {Algorithm} algorithm - The algorithm to use for quantization.
     * @returns {ColorQuantizer} - The ColorQuantizer instance.
     */
-    withAlgorithm(algorithm) {
-        const ptr = this.__destroy_into_raw();
+    setAlgorithm(algorithm) {
         const ptr0 = passStringToWasm0(algorithm, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.colorquantizer_withAlgorithm(ptr, ptr0, len0);
-        return ColorQuantizer.__wrap(ret);
+        wasm.colorcruncher_setAlgorithm(this.__wbg_ptr, ptr0, len0);
     }
     /**
     * @param {number} max_iterations
-    * @returns {ColorQuantizer}
     */
-    withMaxIterations(max_iterations) {
-        const ptr = this.__destroy_into_raw();
-        const ret = wasm.colorquantizer_withMaxIterations(ptr, max_iterations);
-        return ColorQuantizer.__wrap(ret);
+    setMaxIterations(max_iterations) {
+        wasm.colorcruncher_setMaxIterations(this.__wbg_ptr, max_iterations);
     }
     /**
     * @param {number} max_colors
-    * @returns {ColorQuantizer}
     */
-    withMaxColors(max_colors) {
-        const ptr = this.__destroy_into_raw();
-        const ret = wasm.colorquantizer_withMaxColors(ptr, max_colors);
-        return ColorQuantizer.__wrap(ret);
+    setMaxColors(max_colors) {
+        wasm.colorcruncher_setMaxColors(this.__wbg_ptr, max_colors);
     }
     /**
     * Set the number of channels in the image.
     *
     * # Parameters
     *
-    * @param {Channels} channels - The number of channels in the image.
+    * @param {Format} format - The format of the image.
     * @returns {ColorQuantizer} - The ColorQuantizer instance.
     */
-    withChannels(channels) {
-        const ptr = this.__destroy_into_raw();
-        const ptr0 = passStringToWasm0(channels, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    setFormat(format) {
+        const ptr0 = passStringToWasm0(format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.colorquantizer_withChannels(ptr, ptr0, len0);
-        return ColorQuantizer.__wrap(ret);
+        wasm.colorcruncher_setFormat(this.__wbg_ptr, ptr0, len0);
     }
     /**
     * @param {number} tolerance
-    * @returns {ColorQuantizer}
     */
-    withTolerance(tolerance) {
-        const ptr = this.__destroy_into_raw();
-        const ret = wasm.colorquantizer_withTolerance(ptr, tolerance);
-        return ColorQuantizer.__wrap(ret);
+    setTolerance(tolerance) {
+        wasm.colorcruncher_setTolerance(this.__wbg_ptr, tolerance);
     }
     /**
     * @param {number} sample_rate
-    * @returns {ColorQuantizer}
     */
-    withSampleRate(sample_rate) {
-        const ptr = this.__destroy_into_raw();
-        const ret = wasm.colorquantizer_withSampleRate(ptr, sample_rate);
-        return ColorQuantizer.__wrap(ret);
+    setSampleRate(sample_rate) {
+        wasm.colorcruncher_setSampleRate(this.__wbg_ptr, sample_rate);
     }
     /**
     * @param {Uint8Array} data
     * @returns {Uint8Array}
     */
-    quantize(data) {
+    quantize_image(data) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
             const len0 = WASM_VECTOR_LEN;
-            wasm.colorquantizer_quantize(retptr, this.__wbg_ptr, ptr0, len0);
+            wasm.colorcruncher_quantize_image(retptr, this.__wbg_ptr, ptr0, len0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v2 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 1, 1);
+            return v2;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Uint8Array} data
+    * @returns {Uint8Array}
+    */
+    create_palette(data) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.colorcruncher_create_palette(retptr, this.__wbg_ptr, ptr0, len0);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var v2 = getArrayU8FromWasm0(r0, r1).slice();
@@ -448,7 +443,7 @@ async function __wbg_init(input) {
     if (wasm !== undefined) return wasm;
 
     if (typeof input === 'undefined') {
-        input = new URL('kmeanspp_bg.wasm', import.meta.url);
+        input = new URL('colorcrunch_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

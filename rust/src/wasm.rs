@@ -1,23 +1,23 @@
 #![cfg(target_arch = "wasm32")]
 
 use wasm_bindgen::prelude::*;
-use crate::quantize::Quantizer;
+use crate::quantize::ColorCruncher;
 
-#[wasm_bindgen(js_name = "ColorQuantizer")]
-pub struct ColorQuantizer(crate::quantize::Quantizer);
+#[wasm_bindgen(js_name = ColorCruncher)]
+pub struct WasmColorCruncher(crate::quantize::ColorCruncher);
 
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
-    export type Algorithm = "lloyd" | "hamerly";
-    export type Channels = "RGB" | "RGBA";
+export type Algorithm = "lloyd" | "hamerly";
+export type Format = "RGB" | "RGBA";
 "#;
 
 
 type Algorithm = String;
-type Channels = String;
+type Format = String;
 
-#[wasm_bindgen]
-impl ColorQuantizer {
+#[wasm_bindgen(js_class = ColorCruncher)]
+impl WasmColorCruncher {
 
     ///
     /// Constructor for the ColorQuantizer class.
@@ -26,15 +26,15 @@ impl ColorQuantizer {
     ///
     /// @param {u32} max_colors - The maximum number of colors to quantize to.
     /// @param {u32} sample_rate - The sample rate for the quantization.
-    /// @param {Channels} channels - The number of channels in the image.
+    /// @param {Format} format - The format of the image.
     #[wasm_bindgen(constructor, skip_jsdoc)]
-    pub fn new(max_colors: u32, sample_rate: u32, channels: Channels) -> Self {
-        let channels = match channels.as_str() {
+    pub fn new(max_colors: u32, sample_rate: u32, format: Format) -> Self {
+        let channels = match format.as_str() {
             "RGB" => 3,
             "RGBA" => 4,
-            _ => panic!("Invalid channels: {}", channels),
+            _ => panic!("Invalid format: {}", format),
         };
-        let quantizer = Quantizer::new(max_colors.try_into().unwrap(), sample_rate.try_into().unwrap(), channels);
+        let quantizer = ColorCruncher::new(max_colors.try_into().unwrap(), sample_rate.try_into().unwrap(), channels);
         Self(quantizer)
     }
 
@@ -43,54 +43,58 @@ impl ColorQuantizer {
     /// @param {Algorithm} algorithm - The algorithm to use for quantization.
     /// @returns {ColorQuantizer} - The ColorQuantizer instance.
     #[wasm_bindgen(skip_jsdoc)]
-    pub fn withAlgorithm(mut self, algorithm: Algorithm) -> Self {
+    pub fn setAlgorithm(&mut self, algorithm: Algorithm) {
         let converted_algorithm = match algorithm.as_str() {
             "lloyd" => crate::kmeans::KMeansAlgorithm::Lloyd,
             "hamerly" => crate::kmeans::KMeansAlgorithm::Hamerly,
             _ => panic!("Invalid algorithm: {}", algorithm),
         };
-        self.0 = self.0.with_algorithm(converted_algorithm);
-        self
+        self.0 = self.0.clone().with_algorithm(converted_algorithm);
     }
 
-    pub fn withMaxIterations(mut self, max_iterations: u32) -> Self {
-        self.0 = self.0.with_max_iterations(max_iterations.try_into().unwrap());
-        self
+    #[wasm_bindgen]
+    pub fn setMaxIterations(&mut self, max_iterations: u32) {
+        self.0 = self.0.clone().with_max_iterations(max_iterations.try_into().unwrap());
     }
 
-    pub fn withMaxColors(mut self, max_colors: u32) -> Self {
-        self.0 = self.0.with_max_colors(max_colors.try_into().unwrap());
-        self
+    #[wasm_bindgen]
+    pub fn setMaxColors(&mut self, max_colors: u32) {
+        self.0 = self.0.clone().with_max_colors(max_colors.try_into().unwrap());
     }
 
     /// Set the number of channels in the image.
     ///
     /// # Parameters
     ///
-    /// @param {Channels} channels - The number of channels in the image.
+    /// @param {Format} format - The format of the image.
     /// @returns {ColorQuantizer} - The ColorQuantizer instance.
     #[wasm_bindgen(skip_jsdoc)]
-    pub fn withChannels(mut self, channels: Channels) -> Self {
-        let converted_channels = match channels.as_str() {
+    pub fn setFormat(&mut self, format: Format) {
+        let converted_channels = match format.as_str() {
             "RGB" => 3,
             "RGBA" => 4,
-            _ => panic!("Invalid channels: {}", channels),
+            _ => panic!("Invalid format: {}", format),
         };
-        self.0 = self.0.with_channels(converted_channels);
-        self
+        self.0 = self.0.clone().with_channels(converted_channels);
     }
 
-    pub fn withTolerance(mut self, tolerance: f64) -> Self {
-        self.0 = self.0.with_tolerance(tolerance);
-        self
+    #[wasm_bindgen]
+    pub fn setTolerance(&mut self, tolerance: f64) {
+        self.0 = self.0.clone().with_tolerance(tolerance);
     }
 
-    pub fn withSampleRate(mut self, sample_rate: u32) -> Self {
-        self.0 = self.0.with_sample_rate(sample_rate.try_into().unwrap());
-        self
+    #[wasm_bindgen]
+    pub fn setSampleRate(&mut self, sample_rate: u32) {
+        self.0 = self.0.clone().with_sample_rate(sample_rate.try_into().unwrap());
     }
 
-    pub fn quantize(&self, data: Vec<u8>) -> Vec<u8> {
-        self.0.quantize(&data)
+    #[wasm_bindgen]
+    pub fn quantize_image(&self, data: &[u8]) -> Vec<u8> {
+        self.0.clone().quantize_image(data)
+    }
+
+    #[wasm_bindgen]
+    pub fn create_palette(&self, data: &[u8]) -> Vec<u8> {
+        self.0.create_palette(data).iter().map(|color| color.to_vec()).flatten().collect()
     }
 }

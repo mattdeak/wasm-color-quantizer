@@ -6,14 +6,14 @@ use crate::utils::num_distinct_colors;
 
 
 #[derive(Clone, Debug, Default)]
-pub struct Quantizer {
+pub struct ColorCruncher {
     kmeans: KMeans,
     max_colors: usize,
     pub sample_rate: usize,
     pub channels: usize,
 }
 
-impl Quantizer {
+impl ColorCruncher {
     pub fn new(max_colors: usize, sample_rate: usize, channels: usize) -> Self {
         let kmeans = KMeans::new(max_colors);
         Self { kmeans, sample_rate, channels, max_colors }
@@ -55,7 +55,7 @@ impl Quantizer {
         self.max_colors
     }
 
-    pub fn quantize(
+    pub fn quantize_image(
         &self,
         pixels: &[u8],
     ) -> Vec<u8> {
@@ -96,6 +96,23 @@ impl Quantizer {
 
         new_image
     }
+
+    pub fn create_palette(&self, pixels: &[u8]) -> Vec<[u8; 3]> {
+        let image_data: Vec<ColorVec> = pixels
+            .chunks_exact(self.channels)
+            .step_by(self.sample_rate)
+            .map(|chunk| [chunk[0] as f32, chunk[1] as f32, chunk[2] as f32])
+            .collect();
+
+        // If there's already less than or equal to the max number of colors, return the original pixels
+        if num_distinct_colors(&image_data) < self.max_colors {
+            // todo
+            todo!()
+        }
+
+        let (_, centroids) = self.kmeans.run(&image_data).unwrap();
+        centroids.iter().map(|color| [color[0] as u8, color[1] as u8, color[2] as u8]).collect()
+    }
 }
 
 #[cfg(test)]
@@ -112,9 +129,9 @@ mod tests {
         let sample_rate = 1;
         let channels = 4;
 
-        let quantizer = Quantizer::new(max_colors, sample_rate, channels);
+        let quantizer = ColorCruncher::new(max_colors, sample_rate, channels);
 
-        let result = quantizer.quantize(&data);
+        let result = quantizer.quantize_image(&data);
         assert_eq!(result.len(), data.len());
     }
 }
