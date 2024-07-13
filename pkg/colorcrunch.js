@@ -219,12 +219,12 @@ export class ColorCruncher {
     * @param {Uint8Array} data
     * @returns {Uint8Array}
     */
-    quantize_image(data) {
+    quantizeImage(data) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
             const len0 = WASM_VECTOR_LEN;
-            wasm.colorcruncher_quantize_image(retptr, this.__wbg_ptr, ptr0, len0);
+            wasm.colorcruncher_quantizeImage(retptr, this.__wbg_ptr, ptr0, len0);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var v2 = getArrayU8FromWasm0(r0, r1).slice();
@@ -238,12 +238,12 @@ export class ColorCruncher {
     * @param {Uint8Array} data
     * @returns {Uint8Array}
     */
-    create_palette(data) {
+    createPalette(data) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
             const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
             const len0 = WASM_VECTOR_LEN;
-            wasm.colorcruncher_create_palette(retptr, this.__wbg_ptr, ptr0, len0);
+            wasm.colorcruncher_createPalette(retptr, this.__wbg_ptr, ptr0, len0);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var v2 = getArrayU8FromWasm0(r0, r1).slice();

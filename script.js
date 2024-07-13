@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 cruncher.setMaxIterations(maxIter);
                 cruncher.setTolerance(tol);
 
-                const processedData = cruncher.quantize_image(imageData.data);
+                const processedData = cruncher.quantizeImage(imageData.data);
                 const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
                     colorSpace: 'srgb'
                 });
