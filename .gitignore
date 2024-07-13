@@ -2,5 +2,4 @@
 /benchmark_history
 .venv
 
-# analysis notebooks
-analysis/
+/analysis
