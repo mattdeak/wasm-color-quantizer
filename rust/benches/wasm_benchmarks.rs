@@ -1,6 +1,6 @@
 // #![cfg(target_arch = "wasm32")]
 
-use kmeanspp::{types::ColorVec, kmeans_3chan};
+use kmeanspp::{types::ColorVec, kmeans::KMeans};
 use rand::Rng;
 use std::time::{Instant, Duration};
 use statrs::{self, statistics::Statistics};
@@ -23,14 +23,19 @@ pub extern "C" fn benchmark() -> f64 {
     let iterations = 100;
     let warmup_duration = Duration::from_secs(3);
     let mut total_time = 0.0;
+    let algorithm = kmeanspp::kmeans::KMeansAlgorithm::Hamerly;
 
     for &size in &data_sizes {
         for &k in &k_values {
+            let kmeans = KMeans::new(k)
+                .with_max_iterations(100)
+                .with_tolerance(0.02)
+                .with_algorithm(algorithm.clone());
             // Warmup with new data each time
             let warmup_start = Instant::now();
             while warmup_start.elapsed() < warmup_duration {
                 let warmup_data = generate_random_pixels(size);
-                kmeans_3chan(&warmup_data, k);
+                kmeans.run(&warmup_data);
             }
 
             let mut times = Vec::with_capacity(iterations);
@@ -38,7 +43,7 @@ pub extern "C" fn benchmark() -> f64 {
             for _ in 0..iterations {
                 let data = generate_random_pixels(size);
                 let start = Instant::now();
-                kmeans_3chan(&data, k);
+                kmeans.run(&data);
                 let duration = start.elapsed();
                 times.push(duration.as_secs_f64());
             }

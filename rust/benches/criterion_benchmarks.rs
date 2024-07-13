@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use kmeanspp::{types::ColorVec, kmeans_3chan, utils};
+use kmeanspp::{types::ColorVec, kmeans::KMeans, kmeans::KMeansAlgorithm};
 use rand::Rng;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -27,7 +27,7 @@ fn benchmark_kmeans(c: &mut Criterion) {
         for &k in &k_values {
             let benchmark_name = format!("kmeans_size_{}_k_{}", size, k);
             c.bench_function(&benchmark_name, |b| {
-                b.iter(|| kmeans_3chan(black_box(&data), black_box(k)))
+                b.iter(|| KMeans::new(black_box(k)).run(black_box(&data)))
             });
         }
     }
@@ -35,23 +35,26 @@ fn benchmark_kmeans(c: &mut Criterion) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_euclidean_distance(c: &mut Criterion) {
+    use kmeanspp::kmeans;
+
     let mut rng = rand::thread_rng();
     let a: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
     let b: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
 
     c.bench_function("euclidean_distance", |bencher| {
-        bencher.iter(|| utils::euclidean_distance(black_box(&a), black_box(&b)))
+        bencher.iter(|| kmeans::distance::euclidean_distance_squared(black_box(&a), black_box(&b)))
     });
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_find_closest_centroid(c: &mut Criterion) {
+    use kmeanspp::kmeans;
     let mut rng = rand::thread_rng();
     let pixel = [rng.gen(), rng.gen(), rng.gen()];
     let centroids: Vec<ColorVec> = (0..100).map(|_| [rng.gen(), rng.gen(), rng.gen()]).collect();
 
     c.bench_function("find_closest_centroid", |bencher| {
-        bencher.iter(|| utils::find_closest_centroid(black_box(&pixel), black_box(&centroids)))
+        bencher.iter(|| kmeans::find_closest_centroid(black_box(&pixel), black_box(&centroids)))
     });
 }
 
