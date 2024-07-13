@@ -4,7 +4,7 @@ pub mod wasm;
 #[cfg(feature = "python")]
 pub mod python;
 
-pub mod types;
 pub mod kmeans;
 pub mod quantize;
+pub mod types;
 mod utils;

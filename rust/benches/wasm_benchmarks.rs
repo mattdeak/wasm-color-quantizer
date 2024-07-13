@@ -1,18 +1,20 @@
 // #![cfg(target_arch = "wasm32")]
 
-use colorcrunch::{types::ColorVec, kmeans::KMeans};
+use colorcrunch::{kmeans::KMeans, types::ColorVec};
 use rand::Rng;
-use std::time::{Instant, Duration};
 use statrs::{self, statistics::Statistics};
+use std::time::{Duration, Instant};
 
 fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
-        .map(|_| [
-            rng.gen::<f32>() * 255.0,
-            rng.gen::<f32>() * 255.0,
-            rng.gen::<f32>() * 255.0,
-        ])
+        .map(|_| {
+            [
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+            ]
+        })
         .collect()
 }
 
@@ -55,11 +57,7 @@ pub extern "C" fn benchmark() -> f64 {
             let ci_upper = mean_time + (1.96 * std_dev / (iterations as f64).sqrt());
             println!(
                 "Size: {}, K: {}, Mean Time: {:.6}s, CI: {:.6}s - {:.6}s",
-                size,
-                k,
-                mean_time,
-                ci_lower,
-                ci_upper
+                size, k, mean_time, ci_lower, ci_upper
             );
         }
     }

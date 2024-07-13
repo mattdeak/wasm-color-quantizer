@@ -1,13 +1,12 @@
-pub mod lloyd;
-pub mod hamerly;
-pub mod distance;
-mod utils;
 mod config;
+pub mod distance;
+pub mod hamerly;
+pub mod lloyd;
+mod utils;
 
-
-use crate::utils::num_distinct_colors;
+pub use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
 pub use crate::kmeans::utils::find_closest_centroid;
-pub use crate::kmeans::config::{KMeansConfig, KMeansAlgorithm};
+use crate::utils::num_distinct_colors;
 
 use crate::types::ColorVec;
 
@@ -39,6 +38,7 @@ impl KMeans {
             max_iterations: DEFAULT_MAX_ITERATIONS,
             tolerance: DEFAULT_TOLERANCE as f32,
             algorithm: DEFAULT_ALGORITHM,
+            seed: None,
         })
     }
 
@@ -66,6 +66,11 @@ impl KMeans {
         self.0.algorithm = algorithm;
         self
     }
+
+    pub fn with_seed(mut self, seed: u64) -> Self {
+        self.0.seed = Some(seed);
+        self
+    }
 }
 
 impl Default for KMeans {
@@ -75,16 +80,18 @@ impl Default for KMeans {
             max_iterations: 100,
             tolerance: 1e-4,
             algorithm: KMeansAlgorithm::Lloyd,
+            seed: None,
         })
     }
 }
 
-
-
 pub fn kmeans(data: &[ColorVec], config: &KMeansConfig) -> KMeansResult {
     let unique_colors = num_distinct_colors(data);
     if unique_colors < config.k {
-        return Err(KMeansError(format!("Number of unique colors is less than k: {}", unique_colors)));
+        return Err(KMeansError(format!(
+            "Number of unique colors is less than k: {}",
+            unique_colors
+        )));
     }
 
     match config.algorithm {
@@ -93,12 +100,14 @@ pub fn kmeans(data: &[ColorVec], config: &KMeansConfig) -> KMeansResult {
     }
 }
 
-
 #[cfg(test)]
 
 mod tests {
     use super::*;
-    use crate::kmeans::config::{KMeansConfig, KMeansAlgorithm};
+    use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
+    use rand::rngs::StdRng;
+    use rand::Rng;
+    use rand::SeedableRng;
 
     fn run_kmeans_test(data: &[ColorVec], k: usize, expected_non_empty_clusters: usize) {
         let algorithms = vec![KMeansAlgorithm::Lloyd, KMeansAlgorithm::Hamerly];
@@ -109,13 +118,29 @@ mod tests {
                 max_iterations: 100,
                 tolerance: 1e-4,
                 algorithm,
+                seed: None,
             };
 
             let (clusters, centroids) = kmeans(data, &config).unwrap();
 
-            assert_eq!(clusters.len(), data.len(), "clusters.len() == data.len() with algorithm {}", config.algorithm);
-            assert_eq!(centroids.len(), k, "centroids.len() == k with algorithm {}", config.algorithm);
-            assert_eq!(clusters.iter().filter(|&&c| c < k).count(), data.len(), "clusters.iter().filter(|&&c| c < k).count() == data.len() with algorithm {}", config.algorithm);
+            assert_eq!(
+                clusters.len(),
+                data.len(),
+                "clusters.len() == data.len() with algorithm {}",
+                config.algorithm
+            );
+            assert_eq!(
+                centroids.len(),
+                k,
+                "centroids.len() == k with algorithm {}",
+                config.algorithm
+            );
+            assert_eq!(
+                clusters.iter().filter(|&&c| c < k).count(),
+                data.len(),
+                "clusters.iter().filter(|&&c| c < k).count() == data.len() with algorithm {}",
+                config.algorithm
+            );
             // assert_eq!(centroids.iter().filter(|&&c| c != [0.0, 0.0, 0.0]).count(), expected_non_empty_clusters);
             assert!(expected_non_empty_clusters >= 0);
         }
@@ -123,11 +148,7 @@ mod tests {
 
     #[test]
     fn test_kmeans_basic() {
-        let data = vec![
-            [255.0, 0.0, 0.0],
-            [0.0, 255.0, 0.0],
-            [0.0, 0.0, 255.0],
-        ];
+        let data = vec![[255.0, 0.0, 0.0], [0.0, 255.0, 0.0], [0.0, 0.0, 255.0]];
         run_kmeans_test(&data, 3, 3);
     }
 
@@ -143,26 +164,63 @@ mod tests {
 
     #[test]
     fn test_kmeans_two_distinct_colors() {
-        let data = vec![
-            [255.0, 0.0, 0.0],
-            [0.0, 0.0, 255.0],
-        ];
+        let data = vec![[255.0, 0.0, 0.0], [0.0, 0.0, 255.0]];
         run_kmeans_test(&data, 2, 2);
     }
 
     #[test]
     fn test_kmeans_more_clusters_than_colors() {
-        let data = vec![
-            [255.0, 0.0, 0.0],
-            [0.0, 255.0, 0.0],
-        ];
+        let data = vec![[255.0, 0.0, 0.0], [0.0, 255.0, 0.0]];
         let config = KMeansConfig {
             k: 3,
             max_iterations: 100,
             tolerance: 1e-4,
             algorithm: KMeansAlgorithm::Lloyd,
+            seed: None,
         };
         let result = kmeans(&data, &config);
-        assert_eq!(result.err().unwrap().to_string(), "Number of unique colors is less than k: 2");
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Number of unique colors is less than k: 2"
+        );
+    }
+
+    #[test]
+    fn test_algorithms_converge_to_the_same_result_for_same_initial_conditions() {
+        let seed = 42;
+        let data_size = 100;
+
+        let mut rng = StdRng::seed_from_u64(seed);
+        let data = (0..data_size)
+            .map(|_| {
+                [
+                    rng.gen::<f32>() * 255.0,
+                    rng.gen::<f32>() * 255.0,
+                    rng.gen::<f32>() * 255.0,
+                ]
+            })
+            .collect::<Vec<ColorVec>>();
+
+        let config_lloyd = KMeansConfig {
+            k: 3,
+            max_iterations: 500,
+            tolerance: 1e-4,
+            algorithm: KMeansAlgorithm::Lloyd,
+            seed: Some(seed),
+        };
+
+        let config_hamerly = KMeansConfig {
+            k: 3,
+            max_iterations: 500,
+            tolerance: 1e-8,
+            algorithm: KMeansAlgorithm::Hamerly,
+            seed: Some(seed),
+        };
+
+        let (clusters1, centroids1) = kmeans(&data, &config_lloyd).unwrap();
+        let (clusters2, centroids2) = kmeans(&data, &config_hamerly).unwrap();
+
+        assert_eq!(centroids1, centroids2, "centroids == centroids");
+        assert_eq!(clusters1, clusters2, "clusters == clusters");
     }
 }

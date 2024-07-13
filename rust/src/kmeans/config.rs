@@ -18,8 +18,8 @@ pub struct KMeansConfig {
     pub max_iterations: usize,
     pub tolerance: f32,
     pub algorithm: KMeansAlgorithm,
+    pub seed: Option<u64>,
 }
-
 
 impl Default for KMeansConfig {
     fn default() -> Self {
@@ -28,6 +28,7 @@ impl Default for KMeansConfig {
             max_iterations: 100,
             tolerance: 0.02,
             algorithm: KMeansAlgorithm::Lloyd,
+            seed: None,
         }
     }
 }

@@ -1,9 +1,8 @@
-use crate::kmeans::KMeans;
-use crate::types::ColorVec;
-use crate::kmeans::KMeansAlgorithm;
 use crate::kmeans::find_closest_centroid;
+use crate::kmeans::KMeans;
+use crate::kmeans::KMeansAlgorithm;
+use crate::types::ColorVec;
 use crate::utils::num_distinct_colors;
-
 
 #[derive(Clone, Debug, Default)]
 pub struct ColorCruncher {
@@ -16,7 +15,12 @@ pub struct ColorCruncher {
 impl ColorCruncher {
     pub fn new(max_colors: usize, sample_rate: usize, channels: usize) -> Self {
         let kmeans = KMeans::new(max_colors);
-        Self { kmeans, sample_rate, channels, max_colors }
+        Self {
+            kmeans,
+            sample_rate,
+            channels,
+            max_colors,
+        }
     }
 
     pub fn with_max_colors(mut self, max_colors: usize) -> Self {
@@ -55,10 +59,7 @@ impl ColorCruncher {
         self.max_colors
     }
 
-    pub fn quantize_image(
-        &self,
-        pixels: &[u8],
-    ) -> Vec<u8> {
+    pub fn quantize_image(&self, pixels: &[u8]) -> Vec<u8> {
         let image_data: Vec<ColorVec> = pixels
             .chunks_exact(self.channels)
             .step_by(self.sample_rate)
@@ -89,9 +90,9 @@ impl ColorCruncher {
                     new_color[0] as u8,
                     new_color[1] as u8,
                     new_color[2] as u8,
-                    pixel[3]
-            ]);
-                }
+                    pixel[3],
+                ]);
+            }
         }
 
         new_image
@@ -111,7 +112,10 @@ impl ColorCruncher {
         }
 
         let (_, centroids) = self.kmeans.run(&image_data).unwrap();
-        centroids.iter().map(|color| [color[0] as u8, color[1] as u8, color[2] as u8]).collect()
+        centroids
+            .iter()
+            .map(|color| [color[0] as u8, color[1] as u8, color[2] as u8])
+            .collect()
     }
 }
 
@@ -119,11 +123,10 @@ impl ColorCruncher {
 mod tests {
     use super::*;
 
-
     #[test]
     fn test_reduce_colorspace() {
         let data = vec![
-            255, 0, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255
+            255, 0, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255,
         ];
         let max_colors = 2;
         let sample_rate = 1;

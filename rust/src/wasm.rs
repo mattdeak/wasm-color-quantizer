@@ -1,7 +1,7 @@
 #![cfg(target_arch = "wasm32")]
 
-use wasm_bindgen::prelude::*;
 use crate::quantize::ColorCruncher;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(js_name = ColorCruncher)]
 pub struct WasmColorCruncher(crate::quantize::ColorCruncher);
@@ -12,13 +12,11 @@ export type Algorithm = "lloyd" | "hamerly";
 export type Format = "RGB" | "RGBA";
 "#;
 
-
 type Algorithm = String;
 type Format = String;
 
 #[wasm_bindgen(js_class = ColorCruncher)]
 impl WasmColorCruncher {
-
     ///
     /// Constructor for the ColorQuantizer class.
     ///
@@ -34,7 +32,11 @@ impl WasmColorCruncher {
             "RGBA" => 4,
             _ => panic!("Invalid format: {}", format),
         };
-        let quantizer = ColorCruncher::new(max_colors.try_into().unwrap(), sample_rate.try_into().unwrap(), channels);
+        let quantizer = ColorCruncher::new(
+            max_colors.try_into().unwrap(),
+            sample_rate.try_into().unwrap(),
+            channels,
+        );
         Self(quantizer)
     }
 
@@ -54,12 +56,18 @@ impl WasmColorCruncher {
 
     #[wasm_bindgen(js_name = setMaxIterations)]
     pub fn set_max_iterations(&mut self, max_iterations: u32) {
-        self.0 = self.0.clone().with_max_iterations(max_iterations.try_into().unwrap());
+        self.0 = self
+            .0
+            .clone()
+            .with_max_iterations(max_iterations.try_into().unwrap());
     }
 
     #[wasm_bindgen(js_name = setMaxColors)]
     pub fn set_max_colors(&mut self, max_colors: u32) {
-        self.0 = self.0.clone().with_max_colors(max_colors.try_into().unwrap());
+        self.0 = self
+            .0
+            .clone()
+            .with_max_colors(max_colors.try_into().unwrap());
     }
 
     /// Set the number of channels in the image.
@@ -85,7 +93,10 @@ impl WasmColorCruncher {
 
     #[wasm_bindgen(js_name = setSampleRate)]
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
-        self.0 = self.0.clone().with_sample_rate(sample_rate.try_into().unwrap());
+        self.0 = self
+            .0
+            .clone()
+            .with_sample_rate(sample_rate.try_into().unwrap());
     }
 
     #[wasm_bindgen(js_name = quantizeImage)]
@@ -95,6 +106,11 @@ impl WasmColorCruncher {
 
     #[wasm_bindgen(js_name = createPalette)]
     pub fn create_palette(&self, data: &[u8]) -> Vec<u8> {
-        self.0.create_palette(data).iter().map(|color| color.to_vec()).flatten().collect()
+        self.0
+            .create_palette(data)
+            .iter()
+            .map(|color| color.to_vec())
+            .flatten()
+            .collect()
     }
 }

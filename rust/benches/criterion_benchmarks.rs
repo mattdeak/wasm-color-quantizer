@@ -1,18 +1,23 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use colorcrunch::{types::ColorVec, kmeans::{KMeans, KMeansAlgorithm}};
+use colorcrunch::{
+    kmeans::{KMeans, KMeansAlgorithm},
+    types::ColorVec,
+};
 use rand::Rng;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
-        .map(|_| [
-            rng.gen::<f32>() * 255.0,
-            rng.gen::<f32>() * 255.0,
-            rng.gen::<f32>() * 255.0,
-        ])
+        .map(|_| {
+            [
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+            ]
+        })
         .collect()
 }
 
@@ -23,16 +28,28 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
 
     for &size in &data_sizes {
         let data = generate_random_pixels(size);
-        
+
         for &k in &k_values {
             let mut group = c.benchmark_group(format!("kmeans_size_{}_k_{}", size, k));
 
             group.bench_function("Hamerly", |b| {
-                b.iter(|| black_box(KMeans::new(black_box(k)).with_algorithm(KMeansAlgorithm::Hamerly).run(black_box(&data))))
+                b.iter(|| {
+                    black_box(
+                        KMeans::new(black_box(k))
+                            .with_algorithm(KMeansAlgorithm::Hamerly)
+                            .run(black_box(&data)),
+                    )
+                })
             });
 
             group.bench_function("Lloyd", |b| {
-                b.iter(|| black_box(KMeans::new(black_box(k)).with_algorithm(KMeansAlgorithm::Lloyd).run(black_box(&data))))
+                b.iter(|| {
+                    black_box(
+                        KMeans::new(black_box(k))
+                            .with_algorithm(KMeansAlgorithm::Lloyd)
+                            .run(black_box(&data)),
+                    )
+                })
             });
 
             group.finish();
@@ -58,7 +75,9 @@ fn benchmark_find_closest_centroid(c: &mut Criterion) {
     use colorcrunch::kmeans;
     let mut rng = rand::thread_rng();
     let pixel = [rng.gen(), rng.gen(), rng.gen()];
-    let centroids: Vec<ColorVec> = (0..100).map(|_| [rng.gen(), rng.gen(), rng.gen()]).collect();
+    let centroids: Vec<ColorVec> = (0..100)
+        .map(|_| [rng.gen(), rng.gen(), rng.gen()])
+        .collect();
 
     c.bench_function("find_closest_centroid", |bencher| {
         bencher.iter(|| kmeans::find_closest_centroid(black_box(&pixel), black_box(&centroids)))
@@ -66,7 +85,12 @@ fn benchmark_find_closest_centroid(c: &mut Criterion) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-criterion_group!(benches, benchmark_kmeans_comparison, benchmark_euclidean_distance, benchmark_find_closest_centroid);
+criterion_group!(
+    benches,
+    benchmark_kmeans_comparison,
+    benchmark_euclidean_distance,
+    benchmark_find_closest_centroid
+);
 
 #[cfg(not(target_arch = "wasm32"))]
 criterion_main!(benches);

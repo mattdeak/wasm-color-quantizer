@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use crate::types::ColorVec;
+use std::collections::HashSet;
 
 pub fn num_distinct_colors(data: &[ColorVec]) -> usize {
     let mut color_hashset = HashSet::new();
