@@ -6,16 +6,16 @@ ROOT_DIR := $(shell pwd)
 build:
 	cd rust && wasm-pack build --target web --profiling
 	cd ..
-	rm -r pkg
+	rm -rf pkg
 	mv rust/pkg .
-	rm pkg/.gitignore pkg/*.ts
+	rm -f pkg/.gitignore pkg/*.ts
 
 build-release:
 	cd rust && wasm-pack build --target web --release
 	cd ..
-	rm -r pkg
+	rm -rf pkg
 	mv rust/pkg .
-	rm pkg/.gitignore pkg/*.ts
+	rm -f pkg/.gitignore pkg/*.ts
 
 analysis-env:
 	if ! [ -d $(PYTHON_ENV) ]; then \
