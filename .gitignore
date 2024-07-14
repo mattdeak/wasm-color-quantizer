@@ -4,3 +4,6 @@
 .venv
 
 /analysis
+
+*perf.data*
+flamegraph.svg

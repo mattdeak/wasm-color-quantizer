@@ -2,6 +2,7 @@ use crate::kmeans::config::KMeansConfig;
 use crate::kmeans::distance::{euclidean_distance_squared, EuclideanDistance, SquaredEuclideanDistance};
 use crate::kmeans::utils::{has_converged, initialize_centroids};
 use crate::types::{ColorVec, VectorExt};
+use itertools::izip;
 
 // Some utility type aliases for readability
 type Centroids = Vec<ColorVec>;
@@ -11,6 +12,7 @@ type CentroidCounts = Vec<usize>;
 
 type UpperBounds = Vec<EuclideanDistance>;
 type LowerBounds = Vec<EuclideanDistance>;
+
 
 pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Centroids) {
     let (
@@ -38,49 +40,37 @@ pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Ce
     for _ in 0..config.max_iterations {
         compute_neighbor_distances(&centroids, &mut centroid_neighbor_distances);
 
-        // Update bounds and clusters
-        for i in 0..num_pixels {
-            let m = lower_bounds[i].max(&(centroid_neighbor_distances[clusters[i]] / (2.).into()));
-
-            if upper_bounds[i] <= m {
+        for (pixel, assigned_cluster, upper_bound, lower_bound) in izip!(data, &mut clusters, &mut upper_bounds, &mut lower_bounds) {
+            let m = lower_bound.max(centroid_neighbor_distances[*assigned_cluster] / (2.).into());
+            if *upper_bound <= m {
                 continue;
             }
 
-            // tighten upper bound here
-            upper_bounds[i] = euclidean_distance_squared(&centroids[clusters[i]], &data[i]).sqrt();
+            *upper_bound = euclidean_distance_squared(&centroids[*assigned_cluster], pixel).sqrt();
 
-            // Second bounds check, we might still not need to perform the scan.
-            if upper_bounds[i] <= m {
+            if *upper_bound <= m {
                 continue;
             }
 
-            // If we've made it this far, then we need to update.
-            // otherwise a bound check would have been triggered.
-
-            let (best_distance, second_best_distance, best_index) =
-                find_best_and_second_best(&centroids, &data[i]);
-
-            upper_bounds[i] = best_distance;
-            lower_bounds[i] = second_best_distance;
-
-            if best_index != clusters[i] {
-                centroid_sums[clusters[i]] = centroid_sums[clusters[i]].sub(&data[i]);
-                centroid_counts[clusters[i]] -= 1;
-
-                centroid_sums[best_index] = centroid_sums[best_index].add(&data[i]);
+            let (best_distance, second_best_distance, best_index) = find_best_and_second_best(&centroids, pixel);
+            *upper_bound = best_distance;
+            *lower_bound = second_best_distance;
+            if best_index != *assigned_cluster {
+                centroid_sums[*assigned_cluster] = centroid_sums[*assigned_cluster].sub(pixel);
+                centroid_counts[*assigned_cluster] -= 1;
+                centroid_sums[best_index] = centroid_sums[best_index].add(pixel);
                 centroid_counts[best_index] += 1;
 
-                clusters[i] = best_index;
+                *assigned_cluster = best_index;
             }
-
-
         }
+
         // Move centroids into new_centroids (we swap later)
         move_centroids(&mut centroids, &mut new_centroids, &mut centroid_sums, &mut centroid_counts, &mut centroid_move_distances);
 
         // We can optimize this by keeping a running total, but I doubt it's a bottleneck so
         // TODO maybe look into it
-        if has_converged(&centroids, &new_centroids, EuclideanDistance(config.tolerance)) {
+        if has_converged(&centroids, &new_centroids, config.tolerance) {
             std::mem::swap(&mut centroids, &mut new_centroids);
             break;
         }
@@ -210,7 +200,7 @@ fn compute_neighbor_distances(
                 continue;
             }
             // We need to square root here because the bounds check assumes true distances.
-            distances[i] = distances[i].min(&euclidean_distance_squared(centroid, other_centroid).sqrt());
+            distances[i] = distances[i].min(euclidean_distance_squared(centroid, other_centroid).sqrt());
         }
     }
 }

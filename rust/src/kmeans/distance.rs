@@ -9,11 +9,15 @@ use std::ops::SubAssign;
 use std::ops::Div;
 use std::ops::DivAssign;
 
-// should probably test
 #[inline]
 pub fn euclidean_distance_squared(a: &ColorVec, b: &ColorVec) -> SquaredEuclideanDistance {
-    SquaredEuclideanDistance(a.iter().zip(b.iter()).map(|(a, b)| (a - b) * (a - b)).sum())
+    SquaredEuclideanDistance(
+        f32::powi(a[0] - b[0], 2) +
+        f32::powi(a[1] - b[1], 2) +
+        f32::powi(a[2] - b[2], 2)
+    )
 }
+
 
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -23,18 +27,19 @@ pub struct EuclideanDistance(pub f32);
 #[repr(transparent)]
 pub struct SquaredEuclideanDistance(pub f32);
 
+
 macro_rules! impl_distance {
     ($name:ident) => {
         impl $name {
-            pub fn min(&self, other: &Self) -> Self {
+            pub fn min(self, other: Self) -> Self {
                 Self(self.0.min(other.0))
             }
 
-            pub fn max(&self, other: &Self) -> Self {
+            pub fn max(self, other: Self) -> Self {
                 Self(self.0.max(other.0))
             }
 
-            pub fn max_f32(&self, other: f32) -> Self {
+            pub fn max_f32(self, other: f32) -> Self {
                 Self(self.0.max(other))
             }
         }
@@ -115,7 +120,7 @@ impl_distance!(EuclideanDistance);
 impl_distance!(SquaredEuclideanDistance);
 
 impl SquaredEuclideanDistance {
-    pub fn sqrt(&self) -> EuclideanDistance {
+    pub fn sqrt(self) -> EuclideanDistance {
         EuclideanDistance(self.0.sqrt())
     }
 }

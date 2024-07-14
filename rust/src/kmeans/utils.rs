@@ -20,12 +20,12 @@ pub fn find_closest_centroid(pixel: &ColorVec, centroids: &[ColorVec]) -> usize 
     min_index
 }
 
-pub fn has_converged<T: Into<SquaredEuclideanDistance> + Copy>(
+pub fn has_converged(
     initial_centroids: &[ColorVec],
     final_centroids: &[ColorVec],
-    tolerance: T,
+    tolerance: f32,
 ) -> bool {
-    let tolerance = tolerance.into();
+    let tolerance = SquaredEuclideanDistance(tolerance * tolerance);
     initial_centroids
         .iter()
         .zip(final_centroids.iter())
@@ -41,7 +41,7 @@ pub fn calculate_max_centroid_movement(
         .iter()
         .zip(final_centroids.iter())
         .map(|(a, b)| euclidean_distance_squared(a, b))
-        .reduce(|a, b| a.max(&b))
+        .reduce(|a, b| a.max(b))
         .unwrap_or(SquaredEuclideanDistance(0.0))
 }
 
@@ -55,7 +55,7 @@ pub fn calculate_min_centroid_distance(centroids: &[ColorVec]) -> SquaredEuclide
                 .iter()
                 .map(move |&centroid_b| euclidean_distance_squared(&centroid_a, &centroid_b))
         })
-        .fold(SquaredEuclideanDistance(f32::MAX), |a, b| a.min(&b))
+        .fold(SquaredEuclideanDistance(f32::MAX), |a, b| a.min(b))
 }
 
 // Ok we're using the K-Means++ initialization

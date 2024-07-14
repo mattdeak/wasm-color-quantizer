@@ -5,11 +5,12 @@ use colorcrunch::{
     kmeans::{KMeans, KMeansAlgorithm},
     types::ColorVec,
 };
-use rand::Rng;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 
 #[cfg(not(target_arch = "wasm32"))]
-fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
-    let mut rng = rand::thread_rng();
+fn generate_random_pixels(count: usize, seed: u64) -> Vec<ColorVec> {
+    let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
     (0..count)
         .map(|_| {
             [
@@ -25,9 +26,10 @@ fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
 fn benchmark_kmeans_comparison(c: &mut Criterion) {
     let k_values = [2, 4, 8, 16];
     let data_sizes = [1000, 10000, 100000, 500000];
+    let seed = 42; // Fixed seed for reproducibility
 
     for &size in &data_sizes {
-        let data = generate_random_pixels(size);
+        let data = generate_random_pixels(size, seed);
 
         for &k in &k_values {
             let mut group = c.benchmark_group(format!("kmeans_size_{}_k_{}", size, k));
@@ -64,10 +66,13 @@ fn benchmark_euclidean_distance(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
     let a: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
     let b: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
+    let mut group = c.benchmark_group("euclidean_distance");
 
-    c.bench_function("euclidean_distance", |bencher| {
+    group.bench_function("euclidean_distance_arr", |bencher| {
         bencher.iter(|| kmeans::distance::euclidean_distance_squared(black_box(&a), black_box(&b)))
     });
+
+    group.finish();
 }
 
 #[cfg(not(target_arch = "wasm32"))]

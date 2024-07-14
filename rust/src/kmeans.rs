@@ -101,7 +101,6 @@ pub fn kmeans(data: &[ColorVec], config: &KMeansConfig) -> KMeansResult {
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
     use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
