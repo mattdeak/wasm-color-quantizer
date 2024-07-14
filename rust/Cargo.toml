@@ -9,10 +9,6 @@ description = "A fast, wasm-compatible color quantization library written in Rus
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[profile.release]
-# This is just for profiling, we'll remove when we're ready to ship
-debug = true
-
 [features]
 default = []
 python = ["pyo3","numpy"]

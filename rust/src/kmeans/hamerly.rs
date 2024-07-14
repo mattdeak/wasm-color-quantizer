@@ -131,6 +131,7 @@ fn initialize_hamerly(
     )
 }
 
+#[inline]
 fn find_best_and_second_best(centroids: &[ColorVec], point: &ColorVec) -> (EuclideanDistance, EuclideanDistance, usize) {
     let mut best_distance = SquaredEuclideanDistance(f32::MAX);
     let mut second_best_distance = SquaredEuclideanDistance(f32::MAX);
@@ -151,6 +152,7 @@ fn find_best_and_second_best(centroids: &[ColorVec], point: &ColorVec) -> (Eucli
     (best_distance.sqrt(), second_best_distance.sqrt(), best_index)
 }
 
+#[inline]
 fn update_bounds(
     upper_bounds: &mut [EuclideanDistance],
     lower_bounds: &mut [EuclideanDistance],
