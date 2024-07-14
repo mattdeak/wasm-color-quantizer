@@ -1,14 +1,19 @@
 {
-  "name": "kmeanspp",
+  "name": "colorcrunch",
   "type": "module",
-  "version": "0.1.0",
-  "files": [
-    "kmeanspp_bg.wasm",
-    "kmeanspp.js",
-    "kmeanspp.d.ts"
+  "collaborators": [
+    "Matthew Deakos <mwoolnerdeakos@gmail.com>"
   ],
-  "main": "kmeanspp.js",
-  "types": "kmeanspp.d.ts",
+  "description": "A fast, wasm-compatible color quantization library written in Rust",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "colorcrunch_bg.wasm",
+    "colorcrunch.js",
+    "colorcrunch.d.ts"
+  ],
+  "main": "colorcrunch.js",
+  "types": "colorcrunch.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

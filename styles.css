@@ -113,3 +113,23 @@ button {
 #processingIndicator {
     text-align: center;
 }
+
+details {
+    margin-bottom: 1rem;
+}
+
+summary {
+    cursor: pointer;
+    color: #4b5563;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: white;
+}

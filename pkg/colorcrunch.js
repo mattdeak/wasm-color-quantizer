@@ -49,6 +49,60 @@ function addHeapObject(obj) {
 
 let WASM_VECTOR_LEN = 0;
 
+const cachedTextEncoder = (typeof TextEncoder !== 'undefined' ? new TextEncoder('utf-8') : { encode: () => { throw Error('TextEncoder not available') } } );
+
+const encodeString = (typeof cachedTextEncoder.encodeInto === 'function'
+    ? function (arg, view) {
+    return cachedTextEncoder.encodeInto(arg, view);
+}
+    : function (arg, view) {
+    const buf = cachedTextEncoder.encode(arg);
+    view.set(buf);
+    return {
+        read: arg.length,
+        written: buf.length
+    };
+});
+
+function passStringToWasm0(arg, malloc, realloc) {
+
+    if (realloc === undefined) {
+        const buf = cachedTextEncoder.encode(arg);
+        const ptr = malloc(buf.length, 1) >>> 0;
+        getUint8Memory0().subarray(ptr, ptr + buf.length).set(buf);
+        WASM_VECTOR_LEN = buf.length;
+        return ptr;
+    }
+
+    let len = arg.length;
+    let ptr = malloc(len, 1) >>> 0;
+
+    const mem = getUint8Memory0();
+
+    let offset = 0;
+
+    for (; offset < len; offset++) {
+        const code = arg.charCodeAt(offset);
+        if (code > 0x7F) break;
+        mem[ptr + offset] = code;
+    }
+
+    if (offset !== len) {
+        if (offset !== 0) {
+            arg = arg.slice(offset);
+        }
+        ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
+        const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
+        const ret = encodeString(arg, view);
+
+        offset += ret.written;
+        ptr = realloc(ptr, len, offset, 1) >>> 0;
+    }
+
+    WASM_VECTOR_LEN = offset;
+    return ptr;
+}
+
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8Memory0().set(arg, ptr / 1);
@@ -69,34 +123,135 @@ function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8Memory0().subarray(ptr / 1, ptr / 1 + len);
 }
-/**
-* @param {Uint8Array} pixels
-* @param {number} max_colors
-* @param {number} sample_rate
-* @param {number} channels
-* @returns {Uint8Array}
-*/
-export function reduce_colorspace(pixels, max_colors, sample_rate, channels) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArray8ToWasm0(pixels, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.reduce_colorspace(retptr, ptr0, len0, max_colors, sample_rate, channels);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var v2 = getArrayU8FromWasm0(r0, r1).slice();
-        wasm.__wbindgen_free(r0, r1 * 1, 1);
-        return v2;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
 
 function handleError(f, args) {
     try {
         return f.apply(this, args);
     } catch (e) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
+    }
+}
+
+const ColorCruncherFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_colorcruncher_free(ptr >>> 0));
+/**
+*/
+export class ColorCruncher {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ColorCruncherFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_colorcruncher_free(ptr);
+    }
+    /**
+    *
+    * Constructor for the ColorQuantizer class.
+    *
+    * # Parameters
+    *
+    * @param {u32} max_colors - The maximum number of colors to quantize to.
+    * @param {u32} sample_rate - The sample rate for the quantization.
+    * @param {Format} format - The format of the image.
+    */
+    constructor(max_colors, sample_rate, format) {
+        const ptr0 = passStringToWasm0(format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.colorcruncher_new(max_colors, sample_rate, ptr0, len0);
+        this.__wbg_ptr = ret >>> 0;
+        return this;
+    }
+    /**
+    * # Parameters
+    *
+    * @param {Algorithm} algorithm - The algorithm to use for quantization.
+    * @returns {ColorQuantizer} - The ColorQuantizer instance.
+    */
+    setAlgorithm(algorithm) {
+        const ptr0 = passStringToWasm0(algorithm, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.colorcruncher_setAlgorithm(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+    * @param {number} max_iterations
+    */
+    setMaxIterations(max_iterations) {
+        wasm.colorcruncher_setMaxIterations(this.__wbg_ptr, max_iterations);
+    }
+    /**
+    * @param {number} max_colors
+    */
+    setMaxColors(max_colors) {
+        wasm.colorcruncher_setMaxColors(this.__wbg_ptr, max_colors);
+    }
+    /**
+    * Set the number of channels in the image.
+    *
+    * # Parameters
+    *
+    * @param {Format} format - The format of the image.
+    * @returns {ColorQuantizer} - The ColorQuantizer instance.
+    */
+    setFormat(format) {
+        const ptr0 = passStringToWasm0(format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.colorcruncher_setFormat(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+    * @param {number} tolerance
+    */
+    setTolerance(tolerance) {
+        wasm.colorcruncher_setTolerance(this.__wbg_ptr, tolerance);
+    }
+    /**
+    * @param {number} sample_rate
+    */
+    setSampleRate(sample_rate) {
+        wasm.colorcruncher_setSampleRate(this.__wbg_ptr, sample_rate);
+    }
+    /**
+    * @param {Uint8Array} data
+    * @returns {Uint8Array}
+    */
+    quantizeImage(data) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.colorcruncher_quantizeImage(retptr, this.__wbg_ptr, ptr0, len0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v2 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 1, 1);
+            return v2;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Uint8Array} data
+    * @returns {Uint8Array}
+    */
+    createPalette(data) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.colorcruncher_createPalette(retptr, this.__wbg_ptr, ptr0, len0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v2 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 1, 1);
+            return v2;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
     }
 }
 
@@ -134,6 +289,9 @@ async function __wbg_load(module, imports) {
 function __wbg_get_imports() {
     const imports = {};
     imports.wbg = {};
+    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
+        takeObject(arg0);
+    };
     imports.wbg.__wbg_crypto_1d1f22824a6a080c = function(arg0) {
         const ret = getObject(arg0).crypto;
         return addHeapObject(ret);
@@ -158,9 +316,6 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_is_string = function(arg0) {
         const ret = typeof(getObject(arg0)) === 'string';
         return ret;
-    };
-    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
-        takeObject(arg0);
     };
     imports.wbg.__wbg_require_cca90b1a94a0255b = function() { return handleError(function () {
         const ret = module.require;
@@ -288,7 +443,7 @@ async function __wbg_init(input) {
     if (wasm !== undefined) return wasm;
 
     if (typeof input === 'undefined') {
-        input = new URL('kmeanspp_bg.wasm', import.meta.url);
+        input = new URL('colorcrunch_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

@@ -1,18 +1,20 @@
 // #![cfg(target_arch = "wasm32")]
 
-use kmeanspp::{types::ColorVec, kmeans_3chan};
+use colorcrunch::{kmeans::KMeans, types::ColorVec};
 use rand::Rng;
-use std::time::{Instant, Duration};
 use statrs::{self, statistics::Statistics};
+use std::time::{Duration, Instant};
 
 fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
     let mut rng = rand::thread_rng();
     (0..count)
-        .map(|_| [
-            rng.gen(),
-            rng.gen(),
-            rng.gen(),
-        ])
+        .map(|_| {
+            [
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+            ]
+        })
         .collect()
 }
 
@@ -23,14 +25,19 @@ pub extern "C" fn benchmark() -> f64 {
     let iterations = 100;
     let warmup_duration = Duration::from_secs(3);
     let mut total_time = 0.0;
+    let algorithm = colorcrunch::kmeans::KMeansAlgorithm::Hamerly;
 
     for &size in &data_sizes {
         for &k in &k_values {
+            let kmeans = KMeans::new(k)
+                .with_max_iterations(100)
+                .with_tolerance(0.02)
+                .with_algorithm(algorithm.clone());
             // Warmup with new data each time
             let warmup_start = Instant::now();
             while warmup_start.elapsed() < warmup_duration {
                 let warmup_data = generate_random_pixels(size);
-                kmeans_3chan(&warmup_data, k);
+                kmeans.run(&warmup_data).unwrap();
             }
 
             let mut times = Vec::with_capacity(iterations);
@@ -38,7 +45,7 @@ pub extern "C" fn benchmark() -> f64 {
             for _ in 0..iterations {
                 let data = generate_random_pixels(size);
                 let start = Instant::now();
-                kmeans_3chan(&data, k);
+                kmeans.run(&data).unwrap();
                 let duration = start.elapsed();
                 times.push(duration.as_secs_f64());
             }
@@ -50,11 +57,7 @@ pub extern "C" fn benchmark() -> f64 {
             let ci_upper = mean_time + (1.96 * std_dev / (iterations as f64).sqrt());
             println!(
                 "Size: {}, K: {}, Mean Time: {:.6}s, CI: {:.6}s - {:.6}s",
-                size,
-                k,
-                mean_time,
-                ci_lower,
-                ci_upper
+                size, k, mean_time, ci_lower, ci_upper
             );
         }
     }

@@ -1,3 +1,9 @@
 /rust/target
+/rust/pkg
 /benchmark_history
 .venv
+
+/analysis
+
+*perf.data*
+flamegraph.svg
