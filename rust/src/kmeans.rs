@@ -112,7 +112,6 @@ mod tests {
         fn assert_almost_eq(&self, other: &[ColorVec], tolerance: f64);
     }
 
-
     impl TestExt for Vec<ColorVec> {
         fn assert_almost_eq(&self, other: &[ColorVec], tolerance: f64) {
             assert_eq!(self.len(), other.len());
@@ -121,7 +120,12 @@ mod tests {
                 let a_matches = (self[i][0] as f64 - other[i][0] as f64).abs() < tolerance;
                 let b_matches = (self[i][1] as f64 - other[i][1] as f64).abs() < tolerance;
                 let c_matches = (self[i][2] as f64 - other[i][2] as f64).abs() < tolerance;
-                assert!(a_matches && b_matches && c_matches, "{:?} does not match {:?}", self[i], other[i]);
+                assert!(
+                    a_matches && b_matches && c_matches,
+                    "{:?} does not match {:?}",
+                    self[i],
+                    other[i]
+                );
             }
         }
     }

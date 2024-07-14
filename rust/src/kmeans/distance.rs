@@ -1,24 +1,20 @@
 use crate::types::ColorVec;
-use std::ops::Mul;
-use std::ops::MulAssign;
 use std::iter::Sum;
 use std::ops::Add;
 use std::ops::AddAssign;
-use std::ops::Sub;
-use std::ops::SubAssign;
 use std::ops::Div;
 use std::ops::DivAssign;
+use std::ops::Mul;
+use std::ops::MulAssign;
+use std::ops::Sub;
+use std::ops::SubAssign;
 
 #[inline]
 pub fn euclidean_distance_squared(a: &ColorVec, b: &ColorVec) -> SquaredEuclideanDistance {
     SquaredEuclideanDistance(
-        f32::powi(a[0] - b[0], 2) +
-        f32::powi(a[1] - b[1], 2) +
-        f32::powi(a[2] - b[2], 2)
+        f32::powi(a[0] - b[0], 2) + f32::powi(a[1] - b[1], 2) + f32::powi(a[2] - b[2], 2),
     )
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -26,7 +22,6 @@ pub struct EuclideanDistance(pub f32);
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct SquaredEuclideanDistance(pub f32);
-
 
 macro_rules! impl_distance {
     ($name:ident) => {

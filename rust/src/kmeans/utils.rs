@@ -1,9 +1,9 @@
 use crate::kmeans::distance::euclidean_distance_squared;
+use crate::kmeans::distance::SquaredEuclideanDistance;
 use crate::types::ColorVec;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rand::SeedableRng;
-use crate::kmeans::distance::SquaredEuclideanDistance;
 
 // Return the index of closest centroid and distance to that centroid
 pub fn find_closest_centroid(pixel: &ColorVec, centroids: &[ColorVec]) -> usize {
@@ -101,5 +101,4 @@ mod tests {
         let closest_index = find_closest_centroid(&pixel, &centroids);
         assert_eq!(closest_index, 1);
     }
-
 }
