@@ -1,11 +1,11 @@
 // #![cfg(target_arch = "wasm32")]
 
-use colorcrunch::{kmeans::KMeans, types::ColorVec};
+use colorcrunch::{kmeans::KMeans, types::Vec3};
 use rand::Rng;
 use statrs::{self, statistics::Statistics};
 use std::time::{Duration, Instant};
 
-fn generate_random_pixels(count: usize) -> Vec<ColorVec> {
+fn generate_random_pixels(count: usize) -> Vec<Vec3> {
     let mut rng = rand::thread_rng();
     (0..count)
         .map(|_| {

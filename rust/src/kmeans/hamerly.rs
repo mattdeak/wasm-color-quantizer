@@ -3,19 +3,19 @@ use crate::kmeans::distance::{
     euclidean_distance_squared, EuclideanDistance, SquaredEuclideanDistance,
 };
 use crate::kmeans::utils::{has_converged, initialize_centroids};
-use crate::types::{ColorVec, VectorExt};
+use crate::types::{Vec3, VectorExt};
 use itertools::izip;
 
 // Some utility type aliases for readability
-type Centroids = Vec<ColorVec>;
-type CentroidSums = Vec<ColorVec>;
+type Centroids = Vec<Vec3>;
+type CentroidSums = Vec<Vec3>;
 type Clusters = Vec<usize>;
 type CentroidCounts = Vec<usize>;
 
 type UpperBounds = Vec<EuclideanDistance>;
 type LowerBounds = Vec<EuclideanDistance>;
 
-pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Centroids) {
+pub fn kmeans_hamerly(data: &[Vec3], config: &KMeansConfig) -> (Clusters, Centroids) {
     let (
         mut centroids,
         mut centroid_sums,
@@ -96,7 +96,7 @@ pub fn kmeans_hamerly(data: &[ColorVec], config: &KMeansConfig) -> (Clusters, Ce
 }
 
 fn initialize_hamerly(
-    data: &[ColorVec],
+    data: &[Vec3],
     config: &KMeansConfig,
 ) -> (
     Centroids,
@@ -142,8 +142,8 @@ fn initialize_hamerly(
 
 #[inline]
 fn find_best_and_second_best(
-    centroids: &[ColorVec],
-    point: &ColorVec,
+    centroids: &[Vec3],
+    point: &Vec3,
 ) -> (EuclideanDistance, EuclideanDistance, usize) {
     let mut best_distance = SquaredEuclideanDistance(f32::MAX);
     let mut second_best_distance = SquaredEuclideanDistance(f32::MAX);
@@ -206,7 +206,7 @@ fn update_bounds(
     }
 }
 
-fn compute_neighbor_distances(centroids: &[ColorVec], distances: &mut [EuclideanDistance]) {
+fn compute_neighbor_distances(centroids: &[Vec3], distances: &mut [EuclideanDistance]) {
     for (i, centroid) in centroids.iter().enumerate() {
         distances[i] = EuclideanDistance(f32::MAX);
         for (j, other_centroid) in centroids.iter().enumerate() {
@@ -221,9 +221,9 @@ fn compute_neighbor_distances(centroids: &[ColorVec], distances: &mut [Euclidean
 }
 
 fn move_centroids(
-    centroids: &mut [ColorVec],
-    new_centroids: &mut [ColorVec],
-    centroid_sums: &mut [ColorVec],
+    centroids: &mut [Vec3],
+    new_centroids: &mut [Vec3],
+    centroid_sums: &mut [Vec3],
     centroid_counts: &mut [usize],
     centroid_move_distances: &mut [EuclideanDistance],
 ) {

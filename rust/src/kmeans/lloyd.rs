@@ -1,10 +1,10 @@
 use crate::kmeans::config::KMeansConfig;
 use crate::kmeans::utils::{find_closest_centroid, has_converged, initialize_centroids};
-use crate::types::ColorVec;
+use crate::types::Vec3;
 
-pub fn kmeans_lloyd(data: &[ColorVec], config: &KMeansConfig) -> (Vec<usize>, Vec<ColorVec>) {
+pub fn kmeans_lloyd(data: &[Vec3], config: &KMeansConfig) -> (Vec<usize>, Vec<Vec3>) {
     let mut centroids = initialize_centroids(data, config.k, config.seed);
-    let mut new_centroids: Vec<ColorVec> = centroids.clone();
+    let mut new_centroids: Vec<Vec3> = centroids.clone();
 
     let mut clusters = vec![Vec::new(); config.k];
     let mut assignments = vec![0; data.len()];

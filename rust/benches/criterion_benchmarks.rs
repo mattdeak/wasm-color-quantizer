@@ -3,13 +3,13 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use colorcrunch::{
     kmeans::{KMeans, KMeansAlgorithm},
-    types::ColorVec,
+    types::Vec3,
 };
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
 #[cfg(not(target_arch = "wasm32"))]
-fn generate_random_pixels(count: usize, seed: u64) -> Vec<ColorVec> {
+fn generate_random_pixels(count: usize, seed: u64) -> Vec<Vec3> {
     let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
     (0..count)
         .map(|_| {
@@ -64,8 +64,8 @@ fn benchmark_euclidean_distance(c: &mut Criterion) {
     use colorcrunch::kmeans;
 
     let mut rng = rand::thread_rng();
-    let a: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
-    let b: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
+    let a: Vec3 = [rng.gen(), rng.gen(), rng.gen()];
+    let b: Vec3 = [rng.gen(), rng.gen(), rng.gen()];
     let mut group = c.benchmark_group("euclidean_distance");
 
     group.bench_function("euclidean_distance_arr", |bencher| {
@@ -80,7 +80,7 @@ fn benchmark_find_closest_centroid(c: &mut Criterion) {
     use colorcrunch::kmeans;
     let mut rng = rand::thread_rng();
     let pixel = [rng.gen(), rng.gen(), rng.gen()];
-    let centroids: Vec<ColorVec> = (0..100)
+    let centroids: Vec<Vec3> = (0..100)
         .map(|_| [rng.gen(), rng.gen(), rng.gen()])
         .collect();
 

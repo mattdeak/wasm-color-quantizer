@@ -1,4 +1,4 @@
-use crate::types::ColorVec;
+use crate::types::Vec3;
 use std::iter::Sum;
 use std::ops::Add;
 use std::ops::AddAssign;
@@ -10,7 +10,7 @@ use std::ops::Sub;
 use std::ops::SubAssign;
 
 #[inline]
-pub fn euclidean_distance_squared(a: &ColorVec, b: &ColorVec) -> SquaredEuclideanDistance {
+pub fn euclidean_distance_squared(a: &Vec3, b: &Vec3) -> SquaredEuclideanDistance {
     SquaredEuclideanDistance(
         f32::powi(a[0] - b[0], 2) + f32::powi(a[1] - b[1], 2) + f32::powi(a[2] - b[2], 2),
     )

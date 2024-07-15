@@ -1,4 +1,4 @@
-pub type ColorVec = [f32; 3];
+pub type Vec3 = [f32; 3];
 
 pub trait VectorExt<T> {
     fn add(&self, other: &T) -> Self;
@@ -6,8 +6,8 @@ pub trait VectorExt<T> {
     fn div_scalar(&self, scalar: f32) -> Self;
 }
 
-impl VectorExt<ColorVec> for ColorVec {
-    fn add(&self, other: &ColorVec) -> Self {
+impl VectorExt<Vec3> for Vec3 {
+    fn add(&self, other: &Vec3) -> Self {
         let mut sum = [0.0; 3];
         for i in 0..3 {
             sum[i] = self[i] + other[i];
@@ -19,7 +19,7 @@ impl VectorExt<ColorVec> for ColorVec {
         [self[0] / scalar, self[1] / scalar, self[2] / scalar]
     }
 
-    fn sub(&self, other: &ColorVec) -> Self {
+    fn sub(&self, other: &Vec3) -> Self {
         let mut sum = [0.0; 3];
         for i in 0..3 {
             sum[i] = self[i] - other[i];

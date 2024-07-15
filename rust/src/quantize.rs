@@ -1,7 +1,7 @@
 use crate::kmeans::find_closest_centroid;
 use crate::kmeans::KMeans;
 use crate::kmeans::KMeansAlgorithm;
-use crate::types::ColorVec;
+use crate::types::Vec3;
 use crate::utils::num_distinct_colors;
 
 #[derive(Clone, Debug, Default)]
@@ -60,7 +60,7 @@ impl ColorCruncher {
     }
 
     pub fn quantize_image(&self, pixels: &[u8]) -> Vec<u8> {
-        let image_data: Vec<ColorVec> = pixels
+        let image_data: Vec<Vec3> = pixels
             .chunks_exact(self.channels)
             .step_by(self.sample_rate)
             .map(|chunk| [chunk[0] as f32, chunk[1] as f32, chunk[2] as f32])
@@ -99,7 +99,7 @@ impl ColorCruncher {
     }
 
     pub fn create_palette(&self, pixels: &[u8]) -> Vec<[u8; 3]> {
-        let image_data: Vec<ColorVec> = pixels
+        let image_data: Vec<Vec3> = pixels
             .chunks_exact(self.channels)
             .step_by(self.sample_rate)
             .map(|chunk| [chunk[0] as f32, chunk[1] as f32, chunk[2] as f32])

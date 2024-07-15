@@ -4,11 +4,14 @@ pub mod hamerly;
 pub mod lloyd;
 mod utils;
 
+#[cfg(feature = "gpu")]
+pub mod lloyd_gpu;
+
 pub use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
 pub use crate::kmeans::utils::find_closest_centroid;
 use crate::utils::num_distinct_colors;
 
-use crate::types::ColorVec;
+use crate::types::Vec3;
 
 const DEFAULT_MAX_ITERATIONS: usize = 100;
 const DEFAULT_TOLERANCE: f64 = 1e-2;
@@ -25,7 +28,7 @@ impl std::fmt::Display for KMeansError {
 
 impl std::error::Error for KMeansError {}
 
-type KMeansResult = Result<(Vec<usize>, Vec<ColorVec>), KMeansError>;
+type KMeansResult = Result<(Vec<usize>, Vec<Vec3>), KMeansError>;
 
 // A wrapper for easier usage
 #[derive(Debug, Clone)]
@@ -42,7 +45,7 @@ impl KMeans {
         })
     }
 
-    pub fn run(&self, data: &[ColorVec]) -> KMeansResult {
+    pub fn run(&self, data: &[Vec3]) -> KMeansResult {
         kmeans(data, &self.0)
     }
 
@@ -85,7 +88,7 @@ impl Default for KMeans {
     }
 }
 
-pub fn kmeans(data: &[ColorVec], config: &KMeansConfig) -> KMeansResult {
+pub fn kmeans(data: &[Vec3], config: &KMeansConfig) -> KMeansResult {
     let unique_colors = num_distinct_colors(data);
     if unique_colors < config.k {
         return Err(KMeansError(format!(
@@ -109,11 +112,11 @@ mod tests {
     use rand::SeedableRng;
 
     trait TestExt {
-        fn assert_almost_eq(&self, other: &[ColorVec], tolerance: f64);
+        fn assert_almost_eq(&self, other: &[Vec3], tolerance: f64);
     }
 
-    impl TestExt for Vec<ColorVec> {
-        fn assert_almost_eq(&self, other: &[ColorVec], tolerance: f64) {
+    impl TestExt for Vec<Vec3> {
+        fn assert_almost_eq(&self, other: &[Vec3], tolerance: f64) {
             assert_eq!(self.len(), other.len());
 
             for i in 0..self.len() {
@@ -130,7 +133,7 @@ mod tests {
         }
     }
 
-    fn run_kmeans_test(data: &[ColorVec], k: usize, expected_non_empty_clusters: usize) {
+    fn run_kmeans_test(data: &[Vec3], k: usize, expected_non_empty_clusters: usize) {
         let algorithms = vec![KMeansAlgorithm::Lloyd, KMeansAlgorithm::Hamerly];
 
         for algorithm in algorithms {
@@ -220,7 +223,7 @@ mod tests {
                     rng.gen::<f32>() * 255.0,
                 ]
             })
-            .collect::<Vec<ColorVec>>();
+            .collect::<Vec<Vec3>>();
 
         let config_lloyd = KMeansConfig {
             k: 3,

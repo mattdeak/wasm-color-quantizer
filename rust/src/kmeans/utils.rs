@@ -1,12 +1,12 @@
 use crate::kmeans::distance::euclidean_distance_squared;
 use crate::kmeans::distance::SquaredEuclideanDistance;
-use crate::types::ColorVec;
+use crate::types::Vec3;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rand::SeedableRng;
 
 // Return the index of closest centroid and distance to that centroid
-pub fn find_closest_centroid(pixel: &ColorVec, centroids: &[ColorVec]) -> usize {
+pub fn find_closest_centroid(pixel: &Vec3, centroids: &[Vec3]) -> usize {
     debug_assert!(!centroids.is_empty());
     let mut min_distance = euclidean_distance_squared(pixel, &centroids[0]);
     let mut min_index = 0;
@@ -20,11 +20,7 @@ pub fn find_closest_centroid(pixel: &ColorVec, centroids: &[ColorVec]) -> usize 
     min_index
 }
 
-pub fn has_converged(
-    initial_centroids: &[ColorVec],
-    final_centroids: &[ColorVec],
-    tolerance: f32,
-) -> bool {
+pub fn has_converged(initial_centroids: &[Vec3], final_centroids: &[Vec3], tolerance: f32) -> bool {
     let tolerance = SquaredEuclideanDistance(tolerance * tolerance);
     initial_centroids
         .iter()
@@ -34,7 +30,7 @@ pub fn has_converged(
 
 // Ok we're using the K-Means++ initialization
 // I think this is right? Seems to work
-pub fn initialize_centroids(data: &[ColorVec], k: usize, seed: Option<u64>) -> Vec<ColorVec> {
+pub fn initialize_centroids(data: &[Vec3], k: usize, seed: Option<u64>) -> Vec<Vec3> {
     let mut centroids = Vec::with_capacity(k);
 
     // Seed the RNG if provided, otherwise use the current time
