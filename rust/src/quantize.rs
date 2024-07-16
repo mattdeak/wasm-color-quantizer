@@ -92,7 +92,7 @@ impl ColorCruncherBuilder {
 
     pub fn build_cpu(&self) -> ColorCruncher<CpuState> {
         let kmeans_config = self.build_config();
-        let kmeans = KMeans::new_cpu(kmeans_config.clone());
+        let kmeans = KMeans::new(kmeans_config.clone());
 
         ColorCruncher {
             kmeans,

@@ -1,5 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "gpu")]
 use criterion::async_executor::FuturesExecutor;
 
 use colorcrunch::{
@@ -56,7 +58,7 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Hamerly", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new_cpu(KMeansConfig {
+                        KMeans::new(KMeansConfig {
                             algorithm: KMeansAlgorithm::Hamerly,
                             k: k as usize,
                             ..Default::default()
@@ -69,7 +71,7 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Lloyd", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new_cpu(KMeansConfig {
+                        KMeans::new(KMeansConfig {
                             algorithm: KMeansAlgorithm::Lloyd,
                             k: k as usize,
                             ..Default::default()
@@ -79,15 +81,15 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                 })
             });
 
+            #[cfg(feature = "gpu")]
             group.bench_function("Lloyd (GPU)", |b| {
                 b.to_async(FuturesExecutor).iter(|| async {
-                    let kmeans = black_box(
-                        KMeans::new_gpu(KMeansConfig {
-                            algorithm: KMeansAlgorithm::Lloyd,
-                            k: k as usize,
-                            ..Default::default()
-                        }).await);
-                    kmeans.run_async(black_box(&data_vec4)).await
+                    let gpu_kmeans = black_box(KMeans::new(KMeansConfig {
+                        algorithm: KMeansAlgorithm::Lloyd,
+                        k: k as usize,
+                        ..Default::default()
+                    }).gpu().await);
+                    gpu_kmeans.run_async(black_box(&data_vec4)).await
                 })
             });
 

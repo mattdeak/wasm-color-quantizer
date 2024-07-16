@@ -126,11 +126,18 @@ pub enum KMeans {
     Gpu(KMeansGpu),
 }
 
-trait NotVec4 {}
-
 impl KMeans {
-    pub fn new_cpu(config: KMeansConfig) -> Self {
+    pub fn new(config: KMeansConfig) -> Self {
         KMeans::Cpu(KMeansCPU(config))
+    }
+
+    #[cfg(feature = "gpu")]
+    pub async fn gpu(self) -> Self {
+        if let KMeans::Cpu(cpu) = self {
+            KMeans::Gpu(KMeansGpu::from_config(cpu.0).await)
+        } else {
+            self
+        }
     }
 
     #[cfg(feature = "gpu")]

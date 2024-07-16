@@ -35,6 +35,14 @@ struct ProcessBuffers {
 }
 
 impl KMeansGpu {
+    // useful because the initialization function is big
+    // and we don't want to recompile the shader
+    // every time we change the number of clusters
+    pub fn set_k(&mut self, k: usize) {
+        self.config.k = k;
+    }
+
+
     pub async fn from_config(config: KMeansConfig) -> Self {
         let instance = wgpu::Instance::default();
 
@@ -108,7 +116,7 @@ impl KMeansGpu {
             compilation_options: PipelineCompilationOptions::default(),
         });
 
-        log::info!("Adapter: {:?}", adapter.get_info());
+        // log::info!("Adapter: {:?}", adapter.get_info());
 
         Self {
             device,
@@ -210,7 +218,6 @@ impl KMeansGpu {
             self.config
                 .initializer
                 .initialize_centroids(pixels, self.config.k, self.config.seed);
-        dbg!("Initial centroids: {:?}", &centroids);
         let mut new_centroids = centroids.clone();
 
         let mut assignments: Vec<u32> = vec![0; pixels.len()];
@@ -259,9 +266,6 @@ impl KMeansGpu {
             ];
             cluster_counts[cluster] += 1.;
         }
-
-        // dbg!("Cluster sums: {:?}", cluster_sums);
-        dbg!("Cluster counts: {:?}", &cluster_counts);
 
         for (centroid, sum, count) in izip!(
             new_centroids.iter_mut(),
@@ -320,7 +324,6 @@ impl KMeansGpu {
 
         if let Ok(Ok(())) = receiver.await {
             let data = buffer_slice.get_mapped_range();
-            dbg!("data: {:?}", &data);
             local_assignments.copy_from_slice(bytemuck::cast_slice(&data));
             drop(data);
             process_buffers.staging_buffer.unmap();
@@ -337,6 +340,8 @@ mod tests {
     use crate::kmeans::config::KMeansAlgorithm;
     use crate::kmeans::initializer::Initializer;
     use futures::executor::block_on;
+    use rand::thread_rng;
+    use rand::prelude::*;
 
     fn create_test_config() -> KMeansConfig {
         KMeansConfig {
@@ -453,12 +458,27 @@ mod tests {
         ))
         .unwrap();
 
-        dbg!("Updated assignments: {:?}", &initial_assignments);
-
         assert_eq!(initial_assignments.len(), pixels.len());
         assert_eq!(initial_assignments[0], 0);
         assert_eq!(initial_assignments[1], 0);
         assert_eq!(initial_assignments[2], 1);
         assert_eq!(initial_assignments[3], 1);
+    }
+
+    #[test]
+    fn test_big_and_varied_input() {
+        let mut config = create_test_config();
+        config.k = 15;
+
+        let kmeans = block_on(KMeansGpu::from_config(config.clone()));
+        let mut rng = thread_rng();
+
+        let image_size = 2000;
+        let pixels: Vec<[f32; 4]> = (0..image_size * image_size).map(|_| [rng.gen::<f32>() * 255., rng.gen::<f32>() * 255., rng.gen::<f32>() * 255., 0.0]).collect();
+
+        let (assignments, centroids) = block_on(kmeans.run_async(&pixels)).unwrap();
+
+        assert_eq!(assignments.len(), pixels.len());
+        assert_eq!(centroids.len(), config.k);
     }
 }

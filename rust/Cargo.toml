@@ -12,11 +12,10 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = []
 python = ["pyo3","numpy"]
-gpu = ["wgpu", "winit", "env_logger", "log"]
+gpu = ["wgpu", "env_logger", "log"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_futures"] }
-
 
 [[bench]]
 name = "wasm_benchmarks"
@@ -35,7 +34,6 @@ rand = "0.8.5"
 wasm-bindgen = "0.2.92"
 itertools = "0.13.0"
 wgpu = { version = "0.20.1", optional = true }
-winit = { version = "0.30.3", features = ["rwh_05"], optional = true }
 env_logger = { version = "0.11.3", optional = true }
 log = { version = "0.4.22", optional = true }
 futures-intrusive = "0.5.0"
