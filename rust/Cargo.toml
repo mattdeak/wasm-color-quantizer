@@ -9,11 +9,6 @@ description = "A fast, wasm-compatible color quantization library written in Rus
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[[bin]]
-name = "gpu-dev"
-path = "src/gpu.rs"
-required-features = ["gpu"]
-
 [features]
 default = []
 python = ["pyo3","numpy"]

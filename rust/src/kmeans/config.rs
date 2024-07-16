@@ -1,3 +1,4 @@
+use crate::kmeans::initializer::Initializer;
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -18,6 +19,7 @@ pub struct KMeansConfig {
     pub max_iterations: usize,
     pub tolerance: f32,
     pub algorithm: KMeansAlgorithm,
+    pub initializer: Initializer,
     pub seed: Option<u64>,
 }
 
@@ -28,6 +30,7 @@ impl Default for KMeansConfig {
             max_iterations: 100,
             tolerance: 0.02,
             algorithm: KMeansAlgorithm::Lloyd,
+            initializer: Initializer::KMeansPlusPlus,
             seed: None,
         }
     }

@@ -2,20 +2,18 @@ use crate::kmeans::config::KMeansConfig;
 use crate::kmeans::distance::{
     euclidean_distance_squared, EuclideanDistance, SquaredEuclideanDistance,
 };
-use crate::kmeans::utils::{has_converged, initialize_centroids};
-use crate::types::{Vec3, VectorExt};
+use crate::kmeans::types::{Assignments, CentroidCounts, CentroidSums, Centroids};
+use crate::kmeans::utils::has_converged;
+use crate::types::VectorExt;
 use itertools::izip;
-
-// Some utility type aliases for readability
-type Centroids = Vec<Vec3>;
-type CentroidSums = Vec<Vec3>;
-type Clusters = Vec<usize>;
-type CentroidCounts = Vec<usize>;
 
 type UpperBounds = Vec<EuclideanDistance>;
 type LowerBounds = Vec<EuclideanDistance>;
 
-pub fn kmeans_hamerly(data: &[Vec3], config: &KMeansConfig) -> (Clusters, Centroids) {
+pub fn kmeans_hamerly<T: VectorExt>(
+    data: &[T],
+    config: &KMeansConfig,
+) -> (Assignments, Centroids<T>) {
     let (
         mut centroids,
         mut centroid_sums,
@@ -95,26 +93,28 @@ pub fn kmeans_hamerly(data: &[Vec3], config: &KMeansConfig) -> (Clusters, Centro
     (clusters.to_vec(), centroids.to_vec())
 }
 
-fn initialize_hamerly(
-    data: &[Vec3],
+fn initialize_hamerly<T: VectorExt>(
+    data: &[T],
     config: &KMeansConfig,
 ) -> (
-    Centroids,
-    CentroidSums,
+    Centroids<T>,
+    CentroidSums<T>,
     CentroidCounts,
     UpperBounds,
     LowerBounds,
-    Clusters,
+    Assignments,
 ) {
     // indicex of the cluster each pixel belongs to
-    let centroids = initialize_centroids(data, config.k, config.seed);
+    let centroids = config
+        .initializer
+        .initialize_centroids(data, config.k, config.seed);
 
     let num_pixels = data.len();
     let mut clusters = vec![0; num_pixels];
     let mut upper_bounds = vec![EuclideanDistance(0.0); num_pixels];
     let mut lower_bounds = vec![EuclideanDistance(0.0); num_pixels];
 
-    let mut centroid_sums = vec![[0., 0., 0.]; config.k];
+    let mut centroid_sums = vec![T::zero(); config.k];
     let mut centroid_counts = vec![0; config.k];
 
     assert!(data.len() >= config.k);
@@ -141,9 +141,9 @@ fn initialize_hamerly(
 }
 
 #[inline]
-fn find_best_and_second_best(
-    centroids: &[Vec3],
-    point: &Vec3,
+fn find_best_and_second_best<T: VectorExt>(
+    centroids: &[T],
+    point: &T,
 ) -> (EuclideanDistance, EuclideanDistance, usize) {
     let mut best_distance = SquaredEuclideanDistance(f32::MAX);
     let mut second_best_distance = SquaredEuclideanDistance(f32::MAX);
@@ -206,7 +206,7 @@ fn update_bounds(
     }
 }
 
-fn compute_neighbor_distances(centroids: &[Vec3], distances: &mut [EuclideanDistance]) {
+fn compute_neighbor_distances<T: VectorExt>(centroids: &[T], distances: &mut [EuclideanDistance]) {
     for (i, centroid) in centroids.iter().enumerate() {
         distances[i] = EuclideanDistance(f32::MAX);
         for (j, other_centroid) in centroids.iter().enumerate() {
@@ -220,10 +220,10 @@ fn compute_neighbor_distances(centroids: &[Vec3], distances: &mut [EuclideanDist
     }
 }
 
-fn move_centroids(
-    centroids: &mut [Vec3],
-    new_centroids: &mut [Vec3],
-    centroid_sums: &mut [Vec3],
+fn move_centroids<T: VectorExt>(
+    centroids: &mut [T],
+    new_centroids: &mut [T],
+    centroid_sums: &mut [T],
     centroid_counts: &mut [usize],
     centroid_move_distances: &mut [EuclideanDistance],
 ) {

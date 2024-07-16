@@ -1,4 +1,4 @@
-use crate::types::Vec3;
+use crate::types::VectorExt;
 use std::iter::Sum;
 use std::ops::Add;
 use std::ops::AddAssign;
@@ -10,7 +10,7 @@ use std::ops::Sub;
 use std::ops::SubAssign;
 
 #[inline]
-pub fn euclidean_distance_squared(a: &Vec3, b: &Vec3) -> SquaredEuclideanDistance {
+pub fn euclidean_distance_squared<T: VectorExt>(a: &T, b: &T) -> SquaredEuclideanDistance {
     SquaredEuclideanDistance(
         f32::powi(a[0] - b[0], 2) + f32::powi(a[1] - b[1], 2) + f32::powi(a[2] - b[2], 2),
     )

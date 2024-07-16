@@ -1,7 +1,8 @@
-use crate::types::Vec3;
+use crate::types::VectorExt;
+
 use std::collections::HashSet;
 
-pub fn num_distinct_colors(data: &[Vec3]) -> usize {
+pub fn num_distinct_colors<T: VectorExt>(data: &[T]) -> usize {
     let mut color_hashset = HashSet::new();
     for pixel in data {
         // hacky but its fine, it only occurs once at the beginning

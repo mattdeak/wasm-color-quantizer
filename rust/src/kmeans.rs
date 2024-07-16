@@ -1,52 +1,41 @@
 mod config;
 pub mod distance;
 pub mod hamerly;
+pub mod initializer;
 pub mod lloyd;
+mod types;
 mod utils;
 
 #[cfg(feature = "gpu")]
 pub mod lloyd_gpu;
 
 pub use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
+pub use crate::kmeans::initializer::Initializer;
 pub use crate::kmeans::utils::find_closest_centroid;
 use crate::utils::num_distinct_colors;
 
-use crate::types::Vec3;
+use crate::types::{GPUVector, Vec3, Vec4, VectorExt};
+
+use self::lloyd_gpu::KMeansGpu;
+use self::types::{KMeansError, KMeansResult};
 
 const DEFAULT_MAX_ITERATIONS: usize = 100;
 const DEFAULT_TOLERANCE: f64 = 1e-2;
 const DEFAULT_ALGORITHM: KMeansAlgorithm = KMeansAlgorithm::Lloyd;
+const DEFAULT_INITIALIZER: Initializer = Initializer::KMeansPlusPlus;
 
-#[derive(Debug, Clone)]
-pub struct KMeansError(pub String);
-
-impl std::fmt::Display for KMeansError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+pub trait AsyncKMeans<T: VectorExt> {
+    async fn new(config: KMeansConfig) -> Self;
+    async fn run(&self, data: &[T]) -> KMeansResult<T>;
 }
-
-impl std::error::Error for KMeansError {}
-
-type KMeansResult = Result<(Vec<usize>, Vec<Vec3>), KMeansError>;
 
 // A wrapper for easier usage
 #[derive(Debug, Clone)]
-pub struct KMeans(KMeansConfig);
+pub struct KMeansCPU(KMeansConfig);
 
-impl KMeans {
-    pub fn new(k: usize) -> Self {
-        KMeans(KMeansConfig {
-            k,
-            max_iterations: DEFAULT_MAX_ITERATIONS,
-            tolerance: DEFAULT_TOLERANCE as f32,
-            algorithm: DEFAULT_ALGORITHM,
-            seed: None,
-        })
-    }
-
-    pub fn run(&self, data: &[Vec3]) -> KMeansResult {
-        kmeans(data, &self.0)
+impl KMeansCPU {
+    pub fn from_config(config: KMeansConfig) -> Self {
+        KMeansCPU(config)
     }
 
     pub fn with_k(mut self, k: usize) -> Self {
@@ -76,30 +65,102 @@ impl KMeans {
     }
 }
 
-impl Default for KMeans {
+impl Default for KMeansCPU {
     fn default() -> Self {
-        KMeans(KMeansConfig {
+        KMeansCPU(KMeansConfig {
             k: 3,
             max_iterations: 100,
             tolerance: 1e-4,
             algorithm: KMeansAlgorithm::Lloyd,
+            initializer: DEFAULT_INITIALIZER,
             seed: None,
         })
     }
 }
 
-pub fn kmeans(data: &[Vec3], config: &KMeansConfig) -> KMeansResult {
-    let unique_colors = num_distinct_colors(data);
-    if unique_colors < config.k {
-        return Err(KMeansError(format!(
-            "Number of unique colors is less than k: {}",
-            unique_colors
-        )));
+impl KMeansCPU {
+    pub fn run<T: VectorExt>(&self, data: &[T]) -> KMeansResult<T> {
+        let unique_colors = num_distinct_colors(data);
+        if unique_colors < self.0.k {
+            return Err(KMeansError(format!(
+                "Number of unique colors is less than k: {}",
+                unique_colors
+            )));
+        }
+
+        match self.0.algorithm {
+            KMeansAlgorithm::Lloyd => Ok(lloyd::kmeans_lloyd(data, &self.0)),
+            KMeansAlgorithm::Hamerly => Ok(hamerly::kmeans_hamerly(data, &self.0)),
+            _ => Err(KMeansError(format!(
+                "Algorithm not supported: {}",
+                self.0.algorithm
+            ))),
+        }
+    }
+}
+
+impl<T: VectorExt> AsyncKMeans<T> for KMeansCPU {
+    async fn run(&self, data: &[T]) -> Result<(Vec<usize>, Vec<T>), KMeansError> {
+        self.run(data)
     }
 
-    match config.algorithm {
-        KMeansAlgorithm::Lloyd => Ok(lloyd::kmeans_lloyd(data, config)),
-        KMeansAlgorithm::Hamerly => Ok(hamerly::kmeans_hamerly(data, config)),
+    async fn new(config: KMeansConfig) -> Self {
+        KMeansCPU(config)
+    }
+}
+
+impl AsyncKMeans<Vec4> for KMeansGpu {
+    async fn run(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
+        self.run_async(data).await
+    }
+
+    async fn new(config: KMeansConfig) -> Self {
+        KMeansGpu::from_config(config).await
+    }
+}
+
+#[derive(Debug)]
+pub enum KMeans {
+    Cpu(KMeansCPU),
+    #[cfg(feature = "gpu")]
+    Gpu(KMeansGpu),
+}
+
+trait NotVec4 {}
+
+impl KMeans {
+    pub fn new_cpu(config: KMeansConfig) -> Self {
+        KMeans::Cpu(KMeansCPU(config))
+    }
+
+    #[cfg(feature = "gpu")]
+    pub async fn new_gpu(config: KMeansConfig) -> Self {
+        KMeans::Gpu(KMeansGpu::from_config(config).await)
+    }
+
+    pub fn run(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
+        match self {
+            KMeans::Cpu(cpu) => cpu.run(data),
+            KMeans::Gpu(gpu) => gpu.run(data),
+        }
+    }
+
+    pub fn run_vec3(&self, data: &[Vec3]) -> KMeansResult<Vec3> {
+        match self {
+            KMeans::Cpu(cpu) => cpu.run(data),
+            _ => Err(KMeansError(
+                "GPU not supported for 3 channel data. Convert to 4 channel data first."
+                    .to_string(),
+            )),
+        }
+    }
+
+    pub async fn run_async(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
+        match self {
+            KMeans::Cpu(cpu) => cpu.run(data),
+            #[cfg(feature = "gpu")]
+            KMeans::Gpu(gpu) => gpu.run_async(data).await,
+        }
     }
 }
 
@@ -107,16 +168,17 @@ pub fn kmeans(data: &[Vec3], config: &KMeansConfig) -> KMeansResult {
 mod tests {
     use super::*;
     use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
+    use futures::executor::block_on;
     use rand::rngs::StdRng;
     use rand::Rng;
     use rand::SeedableRng;
 
-    trait TestExt {
-        fn assert_almost_eq(&self, other: &[Vec3], tolerance: f64);
+    trait TestExt<T: VectorExt> {
+        fn assert_almost_eq(&self, other: &[T], tolerance: f64);
     }
 
-    impl TestExt for Vec<Vec3> {
-        fn assert_almost_eq(&self, other: &[Vec3], tolerance: f64) {
+    impl<T: VectorExt> TestExt<T> for Vec<T> {
+        fn assert_almost_eq(&self, other: &[T], tolerance: f64) {
             assert_eq!(self.len(), other.len());
 
             for i in 0..self.len() {
@@ -142,16 +204,17 @@ mod tests {
                 max_iterations: 100,
                 tolerance: 1e-4,
                 algorithm,
+                initializer: DEFAULT_INITIALIZER,
                 seed: None,
             };
 
-            let (clusters, centroids) = kmeans(data, &config).unwrap();
+            let (clusters, centroids) = KMeansCPU(config.clone()).run(data).unwrap();
 
             assert_eq!(
                 clusters.len(),
                 data.len(),
                 "clusters.len() == data.len() with algorithm {}",
-                config.algorithm
+                &config.algorithm
             );
             assert_eq!(
                 centroids.len(),
@@ -200,9 +263,10 @@ mod tests {
             max_iterations: 100,
             tolerance: 1e-4,
             algorithm: KMeansAlgorithm::Lloyd,
+            initializer: DEFAULT_INITIALIZER,
             seed: None,
         };
-        let result = kmeans(&data, &config);
+        let result = KMeansCPU(config).run(&data);
         assert_eq!(
             result.err().unwrap().to_string(),
             "Number of unique colors is less than k: 2"
@@ -221,15 +285,17 @@ mod tests {
                     rng.gen::<f32>() * 255.0,
                     rng.gen::<f32>() * 255.0,
                     rng.gen::<f32>() * 255.0,
+                    0.0,
                 ]
             })
-            .collect::<Vec<Vec3>>();
+            .collect::<Vec<Vec4>>();
 
         let config_lloyd = KMeansConfig {
             k: 3,
             max_iterations: 500,
             tolerance: 1e-6,
             algorithm: KMeansAlgorithm::Lloyd,
+            initializer: DEFAULT_INITIALIZER,
             seed: Some(seed),
         };
 
@@ -238,13 +304,27 @@ mod tests {
             max_iterations: 500,
             tolerance: 1e-6,
             algorithm: KMeansAlgorithm::Hamerly,
+            initializer: DEFAULT_INITIALIZER,
             seed: Some(seed),
         };
 
-        let (clusters1, centroids1) = kmeans(&data, &config_lloyd).unwrap();
-        let (clusters2, centroids2) = kmeans(&data, &config_hamerly).unwrap();
+        let config_gpu = KMeansConfig {
+            k: 3,
+            max_iterations: 500,
+            tolerance: 1e-6,
+            algorithm: KMeansAlgorithm::Lloyd,
+            initializer: DEFAULT_INITIALIZER,
+            seed: Some(seed),
+        };
+
+        let gpu = block_on(KMeansGpu::from_config(config_gpu));
+
+        let (clusters1, centroids1) = KMeansCPU(config_lloyd).run(&data).unwrap();
+        let (clusters2, centroids2) = KMeansCPU(config_hamerly).run(&data).unwrap();
+        let (clusters3, centroids3) = gpu.run(&data).unwrap();
 
         centroids1.assert_almost_eq(&centroids2, 0.005);
+        centroids1.assert_almost_eq(&centroids3, 0.005);
         assert_eq!(clusters1, clusters2);
     }
 }

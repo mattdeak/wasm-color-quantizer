@@ -1,10 +1,12 @@
 use crate::kmeans::config::KMeansConfig;
-use crate::kmeans::utils::{find_closest_centroid, has_converged, initialize_centroids};
-use crate::types::Vec3;
+use crate::kmeans::utils::{find_closest_centroid, has_converged};
+use crate::types::{Vec3, VectorExt};
 
-pub fn kmeans_lloyd(data: &[Vec3], config: &KMeansConfig) -> (Vec<usize>, Vec<Vec3>) {
-    let mut centroids = initialize_centroids(data, config.k, config.seed);
-    let mut new_centroids: Vec<Vec3> = centroids.clone();
+pub fn kmeans_lloyd<T: VectorExt>(data: &[T], config: &KMeansConfig) -> (Vec<usize>, Vec<T>) {
+    let mut centroids = config
+        .initializer
+        .initialize_centroids(data, config.k, config.seed);
+    let mut new_centroids: Vec<T> = centroids.clone();
 
     let mut clusters = vec![Vec::new(); config.k];
     let mut assignments = vec![0; data.len()];
@@ -47,7 +49,9 @@ pub fn kmeans_lloyd(data: &[Vec3], config: &KMeansConfig) -> (Vec<usize>, Vec<Ve
                     sum_b += pixel[2];
                 }
 
-                *new_centroid = [sum_r / num_pixels, sum_g / num_pixels, sum_b / num_pixels];
+                new_centroid[0] = sum_r / num_pixels;
+                new_centroid[1] = sum_g / num_pixels;
+                new_centroid[2] = sum_b / num_pixels;
             });
         converged = has_converged(&centroids, &new_centroids, config.tolerance);
         // Swap the centroids and new_centroid. We'll update the new centroids again before
