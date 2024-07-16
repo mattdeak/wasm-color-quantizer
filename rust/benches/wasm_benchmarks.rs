@@ -1,6 +1,6 @@
 // #![cfg(target_arch = "wasm32")]
 
-use colorcrunch::{kmeans::KMeans, types::Vec3};
+use colorcrunch::{kmeans::{KMeans, KMeansConfig}, types::Vec3};
 use rand::Rng;
 use statrs::{self, statistics::Statistics};
 use std::time::{Duration, Instant};
@@ -29,15 +29,19 @@ pub extern "C" fn benchmark() -> f64 {
 
     for &size in &data_sizes {
         for &k in &k_values {
-            let kmeans = KMeans::new(k)
-                .with_max_iterations(100)
-                .with_tolerance(0.02)
-                .with_algorithm(algorithm.clone());
+            let kmeans = KMeans::new_cpu(KMeansConfig {
+                algorithm: algorithm.clone(),
+                k: k as usize,
+                max_iterations: 1000,
+                tolerance: 0.02,
+                seed: Some(0),
+                ..Default::default()
+            });
             // Warmup with new data each time
             let warmup_start = Instant::now();
             while warmup_start.elapsed() < warmup_duration {
                 let warmup_data = generate_random_pixels(size);
-                kmeans.run(&warmup_data).unwrap();
+                kmeans.run_vec3(&warmup_data).unwrap();
             }
 
             let mut times = Vec::with_capacity(iterations);
@@ -45,7 +49,7 @@ pub extern "C" fn benchmark() -> f64 {
             for _ in 0..iterations {
                 let data = generate_random_pixels(size);
                 let start = Instant::now();
-                kmeans.run(&data).unwrap();
+                kmeans.run_vec3(&data).unwrap();
                 let duration = start.elapsed();
                 times.push(duration.as_secs_f64());
             }

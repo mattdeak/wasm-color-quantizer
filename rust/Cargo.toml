@@ -15,7 +15,8 @@ python = ["pyo3","numpy"]
 gpu = ["wgpu", "winit", "env_logger", "log"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-criterion = "0.5.1"
+criterion = { version = "0.5.1", features = ["async_futures"] }
+
 
 [[bench]]
 name = "wasm_benchmarks"

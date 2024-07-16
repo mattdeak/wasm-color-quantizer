@@ -1,13 +1,11 @@
-use crate::types::VectorExt;
-
 // Some utility type aliases for readability
-pub type Centroids<T: VectorExt> = Vec<T>;
-pub type CentroidSums<T: VectorExt> = Vec<T>;
+pub type Centroids<T> = Vec<T>;
+pub type CentroidSums<T> = Vec<T>;
 pub type Assignments = Vec<usize>;
 pub type CentroidCounts = Vec<usize>;
 
 // Result
-pub type KMeansResult<T: VectorExt> = Result<(Assignments, Centroids<T>), KMeansError>;
+pub type KMeansResult<T> = Result<(Assignments, Centroids<T>), KMeansError>;
 
 #[derive(Debug, Clone)]
 pub struct KMeansError(pub String);

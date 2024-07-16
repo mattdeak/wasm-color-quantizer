@@ -138,7 +138,7 @@ impl KMeans {
         KMeans::Gpu(KMeansGpu::from_config(config).await)
     }
 
-    pub fn run(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
+    pub fn run_vec4(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
         match self {
             KMeans::Cpu(cpu) => cpu.run(data),
             KMeans::Gpu(gpu) => gpu.run(data),

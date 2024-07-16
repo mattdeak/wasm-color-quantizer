@@ -1,9 +1,10 @@
 #[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::async_executor::FuturesExecutor;
 
 use colorcrunch::{
     kmeans::{KMeans, KMeansAlgorithm},
-    types::Vec3,
+    types::{Vec3, Vec4},
 };
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
@@ -21,15 +22,33 @@ fn generate_random_pixels(count: usize, seed: u64) -> Vec<Vec3> {
         })
         .collect()
 }
+#[cfg(not(target_arch = "wasm32"))]
+fn generate_random_pixels_vec4(count: usize, seed: u64) -> Vec<Vec4> {
+
+    let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
+    (0..count)
+        .map(|_| {
+            [
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                0.0
+            ]
+        })
+        .collect()
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_kmeans_comparison(c: &mut Criterion) {
+    use colorcrunch::kmeans::KMeansConfig;
+
     let k_values = [2, 4, 8, 16];
     let data_sizes = [1000, 10000, 100000, 500000];
     let seed = 42; // Fixed seed for reproducibility
 
     for &size in &data_sizes {
         let data = generate_random_pixels(size, seed);
+        let data_vec4 = generate_random_pixels_vec4(size, seed);
 
         for &k in &k_values {
             let mut group = c.benchmark_group(format!("kmeans_size_{}_k_{}", size, k));
@@ -37,9 +56,12 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Hamerly", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new(black_box(k))
-                            .with_algorithm(KMeansAlgorithm::Hamerly)
-                            .run(black_box(&data)),
+                        KMeans::new_cpu(KMeansConfig {
+                            algorithm: KMeansAlgorithm::Hamerly,
+                            k: k as usize,
+                            ..Default::default()
+                        })
+                            .run_vec3(black_box(&data)),
                     )
                 })
             });
@@ -47,10 +69,25 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Lloyd", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new(black_box(k))
-                            .with_algorithm(KMeansAlgorithm::Lloyd)
-                            .run(black_box(&data)),
+                        KMeans::new_cpu(KMeansConfig {
+                            algorithm: KMeansAlgorithm::Lloyd,
+                            k: k as usize,
+                            ..Default::default()
+                        })
+                            .run_vec3(black_box(&data)),
                     )
+                })
+            });
+
+            group.bench_function("Lloyd (GPU)", |b| {
+                b.to_async(FuturesExecutor).iter(|| async {
+                    let kmeans = black_box(
+                        KMeans::new_gpu(KMeansConfig {
+                            algorithm: KMeansAlgorithm::Lloyd,
+                            k: k as usize,
+                            ..Default::default()
+                        }).await);
+                    kmeans.run_async(black_box(&data_vec4)).await
                 })
             });
 
