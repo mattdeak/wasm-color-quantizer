@@ -1,10 +1,6 @@
 use crate::kmeans::distance::euclidean_distance_squared;
 use crate::kmeans::distance::SquaredEuclideanDistance;
-use crate::types::Vec3;
 use crate::types::VectorExt;
-use rand::seq::SliceRandom;
-use rand::Rng;
-use rand::SeedableRng;
 
 // Return the index of closest centroid and distance to that centroid
 pub fn find_closest_centroid<T: VectorExt>(pixel: &T, centroids: &[T]) -> usize {
@@ -35,7 +31,7 @@ pub fn has_converged<T: VectorExt>(
 
 #[cfg(test)]
 mod tests {
-    use statrs::assert_almost_eq;
+    
 
     use super::*;
 

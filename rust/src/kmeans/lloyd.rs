@@ -1,6 +1,6 @@
 use crate::kmeans::config::KMeansConfig;
 use crate::kmeans::utils::{find_closest_centroid, has_converged};
-use crate::types::{Vec3, VectorExt};
+use crate::types::VectorExt;
 
 pub fn kmeans_lloyd<T: VectorExt>(data: &[T], config: &KMeansConfig) -> (Vec<usize>, Vec<T>) {
     let mut centroids = config

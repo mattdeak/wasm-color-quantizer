@@ -14,7 +14,7 @@ pub use crate::kmeans::initializer::Initializer;
 pub use crate::kmeans::utils::find_closest_centroid;
 use crate::utils::num_distinct_colors;
 
-use crate::types::{GPUVector, Vec3, Vec4, VectorExt};
+use crate::types::{Vec3, Vec4, VectorExt};
 
 use self::lloyd_gpu::KMeansGpu;
 use self::types::{KMeansError, KMeansResult};

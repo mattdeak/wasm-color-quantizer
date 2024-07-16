@@ -1,6 +1,5 @@
 use crate::kmeans::distance::euclidean_distance_squared;
 use crate::kmeans::distance::SquaredEuclideanDistance;
-use crate::types::Vec3;
 use crate::types::VectorExt;
 use rand::prelude::*;
 use rand::SeedableRng;
