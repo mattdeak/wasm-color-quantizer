@@ -9,8 +9,8 @@ use wgpu::{
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, BindingType, Buffer, BufferBindingType, BufferDescriptor, BufferUsages,
     CommandEncoderDescriptor, ComputePassDescriptor, ComputePipeline, ComputePipelineDescriptor,
-    Device, DeviceDescriptor, PipelineCompilationOptions, PipelineLayout, PipelineLayoutDescriptor,
-    Queue, RequestAdapterOptions, ShaderModuleDescriptor, ShaderSource, ShaderStages,
+    Device, PipelineCompilationOptions, PipelineLayout, PipelineLayoutDescriptor,
+    Queue, ShaderModuleDescriptor, ShaderSource, ShaderStages,
 };
 
 type Centroids = Vec<Vec4>;
