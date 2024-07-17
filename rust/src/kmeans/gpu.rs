@@ -1,4 +1,5 @@
-pub mod buffers;
+mod buffers;
+mod common;
 mod lloyd_gpu1;
 mod lloyd_gpu2;
 mod lloyd_gpu4;

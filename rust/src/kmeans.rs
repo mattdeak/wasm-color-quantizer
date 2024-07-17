@@ -9,6 +9,9 @@ mod utils;
 #[cfg(feature = "gpu")]
 pub mod gpu;
 
+#[cfg(feature = "gpu")]
+use self::gpu::KMeansGpu;
+
 pub use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
 pub use crate::kmeans::initializer::Initializer;
 pub use crate::kmeans::utils::find_closest_centroid;
@@ -16,7 +19,6 @@ use crate::utils::num_distinct_colors;
 
 use crate::types::{Vec3, Vec4, Vec4u, VectorExt};
 
-use self::gpu::KMeansGpu;
 use self::types::{KMeansError, KMeansResult};
 
 const DEFAULT_INITIALIZER: Initializer = Initializer::KMeansPlusPlus;
@@ -83,6 +85,7 @@ impl KMeansCPU {
         match self.0.algorithm {
             KMeansAlgorithm::Lloyd => Ok(lloyd::kmeans_lloyd(data, &self.0)),
             KMeansAlgorithm::Hamerly => Ok(hamerly::kmeans_hamerly(data, &self.0)),
+            #[cfg(feature = "gpu")]
             _ => Err(KMeansError(format!(
                 "Algorithm not supported on cpu: {}",
                 self.0.algorithm
@@ -132,6 +135,7 @@ impl KMeans {
     pub fn run_vec4(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
         match self {
             KMeans::Cpu(cpu) => cpu.run(data),
+            #[cfg(feature = "gpu")]
             _ => Err(KMeansError(
                 "GPU not supported for 3 channel data. Convert to 4 channel data first."
                     .to_string(),
@@ -139,19 +143,10 @@ impl KMeans {
         }
     }
 
-    pub fn run_vec4u(&self, data: &[Vec4u]) -> KMeansResult<Vec4> {
-        match self {
-            KMeans::Gpu(gpu) => gpu.run(data),
-            // This is obviously stupid and we should allow this.
-            _ => Err(KMeansError(
-                "CPU not yet supported for u32 pixels. Convert to f32 first.".to_string(),
-            )),
-        }
-    }
-
     pub fn run_vec3(&self, data: &[Vec3]) -> KMeansResult<Vec3> {
         match self {
             KMeans::Cpu(cpu) => cpu.run(data),
+            #[cfg(feature = "gpu")]
             _ => Err(KMeansError(
                 "GPU not supported for 3 channel data. Convert to 4 channel data first."
                     .to_string(),

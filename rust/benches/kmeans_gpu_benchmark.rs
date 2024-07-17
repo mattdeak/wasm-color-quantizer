@@ -39,10 +39,18 @@ fn benchmark_kmeans_gpu(c: &mut Criterion) {
         };
         let kmeans = block_on(KMeansGpu::new(config));
 
-        group.bench_with_input(BenchmarkId::from_parameter(format!("{:?}", algorithm)), &kmeans, |b, kmeans| {
-            b.to_async(FuturesExecutor)
-                .iter_with_large_drop(|| async { kmeans.run_async(black_box(&pixels)).await.expect("Error running kmeans"); });
-        });
+        group.bench_with_input(
+            BenchmarkId::from_parameter(format!("{:?}", algorithm)),
+            &kmeans,
+            |b, kmeans| {
+                b.to_async(FuturesExecutor).iter_with_large_drop(|| async {
+                    kmeans
+                        .run_async(black_box(&pixels))
+                        .await
+                        .expect("Error running kmeans");
+                });
+            },
+        );
     }
 
     group.finish();

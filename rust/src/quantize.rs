@@ -3,40 +3,15 @@ use crate::kmeans::Initializer;
 use crate::kmeans::KMeans;
 use crate::kmeans::KMeansAlgorithm;
 use crate::kmeans::KMeansConfig;
-use crate::types::Vec3;
-use crate::types::Vec4;
 use crate::types::Vec4u;
-use crate::utils::num_distinct_colors;
 use crate::utils::num_distinct_colors_u32;
-use std::marker::PhantomData;
-
-#[derive(Clone, Debug)]
-pub enum ColorCruncherMode {
-    GPU,
-    CPU,
-}
-
-impl Default for ColorCruncherMode {
-    fn default() -> Self {
-        Self::CPU
-    }
-}
-
-struct CpuState {}
-struct GpuState {}
-
-trait CruncherState {}
-
-impl CruncherState for CpuState {}
-impl CruncherState for GpuState {}
 
 #[derive(Debug)]
-pub struct ColorCruncher<S: CruncherState> {
+pub struct ColorCruncher {
     kmeans: KMeans,
     max_colors: usize,
     pub sample_rate: usize,
     pub channels: usize,
-    _marker: PhantomData<S>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -92,7 +67,7 @@ impl ColorCruncherBuilder {
         self
     }
 
-    pub fn build_cpu(&self) -> ColorCruncher<CpuState> {
+    pub fn build(&self) -> ColorCruncher {
         let kmeans_config = self.build_config();
         let kmeans = KMeans::new(kmeans_config.clone());
 
@@ -101,20 +76,6 @@ impl ColorCruncherBuilder {
             max_colors: kmeans_config.k,
             sample_rate: self.sample_rate.unwrap_or(1),
             channels: self.channels.unwrap_or(3),
-            _marker: PhantomData,
-        }
-    }
-
-    pub async fn build_gpu(&self) -> ColorCruncher<GpuState> {
-        let kmeans_config = self.build_config();
-        let kmeans = KMeans::new_gpu(kmeans_config.clone()).await;
-
-        ColorCruncher {
-            kmeans,
-            max_colors: kmeans_config.k,
-            sample_rate: self.sample_rate.unwrap_or(1),
-            channels: 4,
-            _marker: PhantomData,
         }
     }
 
@@ -139,15 +100,7 @@ impl ColorCruncherBuilder {
     }
 }
 
-impl<S: CruncherState> ColorCruncher<S> {
-    fn chunk_pixels_vec3(&self, pixels: &[u8]) -> Vec<Vec3> {
-        pixels
-            .chunks_exact(self.channels)
-            .step_by(self.sample_rate)
-            .map(|chunk| [chunk[0] as f32, chunk[1] as f32, chunk[2] as f32])
-            .collect()
-    }
-
+impl ColorCruncher {
     fn chunk_pixels_vec4u(&self, pixels: &[u8]) -> Vec<Vec4u> {
         pixels
             .chunks_exact(self.channels)
@@ -162,62 +115,7 @@ impl<S: CruncherState> ColorCruncher<S> {
             })
             .collect()
     }
-}
 
-impl ColorCruncher<CpuState> {
-    pub fn quantize_image(&self, pixels: &[u8]) -> Vec<u8> {
-        let image_data: Vec<Vec3> = self.chunk_pixels_vec3(pixels);
-
-        // If there's already less than or equal to the max number of colors, return the original pixels
-        if num_distinct_colors(&image_data) <= self.max_colors {
-            return pixels.to_vec();
-        }
-
-        let (_, centroids) = self.kmeans.run_vec3(&image_data).unwrap();
-
-        let mut new_image = Vec::with_capacity(pixels.len());
-        for pixel in pixels.chunks_exact(self.channels) {
-            let px_vec = [pixel[0] as f32, pixel[1] as f32, pixel[2] as f32];
-            let closest_centroid = find_closest_centroid(&px_vec, &centroids);
-            let new_color = &centroids[closest_centroid];
-
-            if self.channels == 3 {
-                new_image.extend_from_slice(&[
-                    new_color[0] as u8,
-                    new_color[1] as u8,
-                    new_color[2] as u8,
-                ]);
-            } else {
-                new_image.extend_from_slice(&[
-                    new_color[0] as u8,
-                    new_color[1] as u8,
-                    new_color[2] as u8,
-                    pixel[3],
-                ]);
-            }
-        }
-
-        new_image
-    }
-
-    pub fn create_palette(&self, pixels: &[u8]) -> Vec<[u8; 3]> {
-        let image_data: Vec<Vec3> = self.chunk_pixels_vec3(pixels);
-
-        // If there's already less than or equal to the max number of colors, return the original pixels
-        if num_distinct_colors(&image_data) < self.max_colors {
-            // todo
-            todo!()
-        }
-
-        let (_, centroids) = self.kmeans.run_vec3(&image_data).unwrap();
-        centroids
-            .iter()
-            .map(|color| [color[0] as u8, color[1] as u8, color[2] as u8])
-            .collect()
-    }
-}
-
-impl ColorCruncher<GpuState> {
     pub async fn quantize_image(&self, pixels: &[u8]) -> Vec<u8> {
         let image_data = self.chunk_pixels_vec4u(pixels);
 
@@ -277,6 +175,8 @@ impl ColorCruncher<GpuState> {
 
 #[cfg(test)]
 mod tests {
+    use futures::executor::block_on;
+
     use super::*;
 
     #[test]
@@ -292,9 +192,9 @@ mod tests {
             .with_max_colors(max_colors)
             .with_sample_rate(sample_rate)
             .with_channels(channels)
-            .build_cpu();
+            .build();
 
-        let result = quantizer.quantize_image(&data);
+        let result = block_on(quantizer.quantize_image(&data));
         assert_eq!(result.len(), data.len());
     }
 }

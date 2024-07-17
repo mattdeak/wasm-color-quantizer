@@ -1,4 +1,5 @@
 use super::buffers::MappableBuffer;
+use super::common::common_wgpu_setup;
 use crate::kmeans::types::KMeansResult;
 use crate::kmeans::utils::has_converged;
 use crate::kmeans::KMeansConfig;
@@ -97,15 +98,7 @@ impl LloydAssignmentsAndCentroids {
     }
 
     pub async fn from_config(config: KMeansConfig) -> Self {
-        let instance = wgpu::Instance::default();
-        let adapter = instance
-            .request_adapter(&RequestAdapterOptions::default())
-            .await
-            .unwrap();
-        let (device, queue) = adapter
-            .request_device(&DeviceDescriptor::default(), None)
-            .await
-            .unwrap();
+        let (_, _, device, queue) = common_wgpu_setup().await.unwrap();
 
         let bind_group_layout = Self::make_bind_group_layout(&device);
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {

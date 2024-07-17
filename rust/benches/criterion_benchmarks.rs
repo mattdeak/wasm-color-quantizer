@@ -102,8 +102,9 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                     k: k as usize,
                     ..Default::default()
                 })
-                .gpu()
-            ).unwrap();
+                .gpu(),
+            )
+            .unwrap();
 
             #[cfg(feature = "gpu")]
             group.bench_function("Lloyd (GPU)", |b| {
