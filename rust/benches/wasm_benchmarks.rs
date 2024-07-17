@@ -1,10 +1,13 @@
 // #![cfg(target_arch = "wasm32")]
 
-use colorcrunch::{kmeans::{KMeans, KMeansAlgorithm, KMeansConfig}, types::{Vec3, Vec4}};
+use colorcrunch::{
+    kmeans::{KMeans, KMeansAlgorithm, KMeansConfig},
+    types::{Vec3, Vec4, Vec4u},
+};
+use futures::executor::block_on;
 use rand::Rng;
 use statrs::{self, statistics::Statistics};
 use std::time::{Duration, Instant};
-use futures::executor::block_on;
 
 fn generate_random_pixels(count: usize) -> Vec<Vec4> {
     let mut rng = rand::thread_rng();
@@ -15,6 +18,20 @@ fn generate_random_pixels(count: usize) -> Vec<Vec4> {
                 rng.gen::<f32>() * 255.0,
                 rng.gen::<f32>() * 255.0,
                 0.0,
+            ]
+        })
+        .collect()
+}
+
+fn generate_random_pixels_u32(count: usize) -> Vec<Vec4u> {
+    let mut rng = rand::thread_rng();
+    (0..count)
+        .map(|_| {
+            [
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
             ]
         })
         .collect()
@@ -57,8 +74,9 @@ pub extern "C" fn benchmark() -> f64 {
                 let warmup_start = Instant::now();
                 while warmup_start.elapsed() < warmup_duration {
                     let warmup_data = generate_random_pixels(size);
+                    let warmup_u32_data = generate_random_pixels_u32(size);
                     kmeans_cpu.run_vec4(&warmup_data).unwrap();
-                    block_on(kmeans_gpu.run_async(&warmup_data)).unwrap();
+                    block_on(kmeans_gpu.run_async(&warmup_u32_data)).unwrap();
                 }
 
                 let mut times_cpu = Vec::with_capacity(iterations);
@@ -66,14 +84,15 @@ pub extern "C" fn benchmark() -> f64 {
 
                 for _ in 0..iterations {
                     let data = generate_random_pixels(size);
-                    
+                    let u32_data = generate_random_pixels_u32(size);
+
                     let start = Instant::now();
                     kmeans_cpu.run_vec4(&data).unwrap();
                     let duration = start.elapsed();
                     times_cpu.push(duration.as_secs_f64());
 
                     let start = Instant::now();
-                    block_on(kmeans_gpu.run_async(&data)).unwrap();
+                    block_on(kmeans_gpu.run_async(&u32_data)).unwrap();
                     let duration = start.elapsed();
                     times_gpu.push(duration.as_secs_f64());
                 }
@@ -86,10 +105,14 @@ pub extern "C" fn benchmark() -> f64 {
                 total_time += mean_time_cpu * iterations as f64;
                 total_time += mean_time_gpu * iterations as f64;
 
-                let ci_lower_cpu = mean_time_cpu - (1.96 * std_dev_cpu / (iterations as f64).sqrt());
-                let ci_upper_cpu = mean_time_cpu + (1.96 * std_dev_cpu / (iterations as f64).sqrt());
-                let ci_lower_gpu = mean_time_gpu - (1.96 * std_dev_gpu / (iterations as f64).sqrt());
-                let ci_upper_gpu = mean_time_gpu + (1.96 * std_dev_gpu / (iterations as f64).sqrt());
+                let ci_lower_cpu =
+                    mean_time_cpu - (1.96 * std_dev_cpu / (iterations as f64).sqrt());
+                let ci_upper_cpu =
+                    mean_time_cpu + (1.96 * std_dev_cpu / (iterations as f64).sqrt());
+                let ci_lower_gpu =
+                    mean_time_gpu - (1.96 * std_dev_gpu / (iterations as f64).sqrt());
+                let ci_upper_gpu =
+                    mean_time_gpu + (1.96 * std_dev_gpu / (iterations as f64).sqrt());
 
                 println!(
                     "Size: {}, K: {}, Algorithm: {:?}, CPU Mean Time: {:.6}s, CI: {:.6}s - {:.6}s",

@@ -1,3 +1,4 @@
+use crate::kmeans::gpu::GpuAlgorithm;
 use crate::kmeans::initializer::Initializer;
 use std::fmt;
 
@@ -5,6 +6,16 @@ use std::fmt;
 pub enum KMeansAlgorithm {
     Lloyd,
     Hamerly,
+    Gpu(GpuAlgorithm),
+}
+
+impl KMeansAlgorithm {
+    pub fn gpu(&self) -> Option<GpuAlgorithm> {
+        match self {
+            KMeansAlgorithm::Gpu(gpu) => Some(gpu.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for KMeansAlgorithm {

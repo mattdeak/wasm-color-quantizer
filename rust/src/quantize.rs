@@ -5,7 +5,9 @@ use crate::kmeans::KMeansAlgorithm;
 use crate::kmeans::KMeansConfig;
 use crate::types::Vec3;
 use crate::types::Vec4;
+use crate::types::Vec4u;
 use crate::utils::num_distinct_colors;
+use crate::utils::num_distinct_colors_u32;
 use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]
@@ -146,16 +148,16 @@ impl<S: CruncherState> ColorCruncher<S> {
             .collect()
     }
 
-    fn chunk_pixels_vec4(&self, pixels: &[u8]) -> Vec<Vec4> {
+    fn chunk_pixels_vec4u(&self, pixels: &[u8]) -> Vec<Vec4u> {
         pixels
             .chunks_exact(self.channels)
             .step_by(self.sample_rate)
             .map(|chunk| {
                 [
-                    chunk[0] as f32,
-                    chunk[1] as f32,
-                    chunk[2] as f32,
-                    chunk[3] as f32,
+                    chunk[0] as u32,
+                    chunk[1] as u32,
+                    chunk[2] as u32,
+                    chunk[3] as u32,
                 ]
             })
             .collect()
@@ -217,10 +219,10 @@ impl ColorCruncher<CpuState> {
 
 impl ColorCruncher<GpuState> {
     pub async fn quantize_image(&self, pixels: &[u8]) -> Vec<u8> {
-        let image_data: Vec<Vec4> = self.chunk_pixels_vec4(pixels);
+        let image_data = self.chunk_pixels_vec4u(pixels);
 
         // If there's already less than or equal to the max number of colors, return the original pixels
-        if num_distinct_colors(&image_data) <= self.max_colors {
+        if num_distinct_colors_u32(&image_data) <= self.max_colors {
             return pixels.to_vec();
         }
 
@@ -257,10 +259,10 @@ impl ColorCruncher<GpuState> {
     }
 
     pub async fn create_palette(&self, pixels: &[u8]) -> Vec<[u8; 3]> {
-        let image_data: Vec<Vec4> = self.chunk_pixels_vec4(pixels);
+        let image_data = self.chunk_pixels_vec4u(pixels);
 
         // If there's already less than or equal to the max number of colors, return the original pixels
-        if num_distinct_colors(&image_data) < self.max_colors {
+        if num_distinct_colors_u32(&image_data) < self.max_colors {
             // todo
             todo!()
         }

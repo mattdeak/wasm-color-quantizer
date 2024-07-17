@@ -31,7 +31,6 @@ pub fn has_converged<T: VectorExt>(
 
 #[cfg(test)]
 mod tests {
-    
 
     use super::*;
 

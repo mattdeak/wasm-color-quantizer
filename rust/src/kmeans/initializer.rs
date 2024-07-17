@@ -1,5 +1,7 @@
 use crate::kmeans::distance::euclidean_distance_squared;
 use crate::kmeans::distance::SquaredEuclideanDistance;
+use crate::types::Vec4;
+use crate::types::Vec4u;
 use crate::types::VectorExt;
 use rand::prelude::*;
 use rand::SeedableRng;
@@ -19,8 +21,16 @@ impl Initializer {
     ) -> Vec<T> {
         match self {
             Initializer::KMeansPlusPlus => kmeans_plus_plus(data, k, seed),
-            Initializer::Random => random_initializer(data, k, seed),
+            Initializer::Random => initialize_random(data, k, seed),
         }
+    }
+}
+
+fn get_seedable_rng(seed: Option<u64>) -> StdRng {
+    if let Some(seed) = seed {
+        rand::rngs::StdRng::seed_from_u64(seed)
+    } else {
+        rand::rngs::StdRng::from_entropy()
     }
 }
 
@@ -30,13 +40,7 @@ fn kmeans_plus_plus<T: VectorExt>(data: &[T], k: usize, seed: Option<u64>) -> Ve
     let mut centroids = Vec::with_capacity(k);
 
     // Seed the RNG if provided, otherwise use the current time
-    let mut rng = {
-        if let Some(seed) = seed {
-            rand::rngs::StdRng::seed_from_u64(seed)
-        } else {
-            rand::rngs::StdRng::from_entropy()
-        }
-    };
+    let mut rng = get_seedable_rng(seed);
 
     // Choose the first centroid randomly
     if let Some(first_centroid) = data.choose(&mut rng) {
@@ -71,11 +75,10 @@ fn kmeans_plus_plus<T: VectorExt>(data: &[T], k: usize, seed: Option<u64>) -> Ve
             }
         }
     }
-
     centroids
 }
 
-fn random_initializer<T: VectorExt>(data: &[T], k: usize, seed: Option<u64>) -> Vec<T> {
+pub fn initialize_random<T: Copy>(data: &[T], k: usize, seed: Option<u64>) -> Vec<T> {
     // Seed the RNG if provided, otherwise use the current time
     let mut rng = {
         if let Some(seed) = seed {

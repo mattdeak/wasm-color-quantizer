@@ -1,5 +1,6 @@
 pub type Vec3 = [f32; 3];
 pub type Vec4 = [f32; 4];
+pub type Vec4u = [u32; 4];
 
 pub trait GPUVector {}
 pub trait VectorExt:
@@ -67,5 +68,3 @@ impl VectorExt for Vec4 {
         [0.0; 4]
     }
 }
-
-impl GPUVector for Vec4 {}

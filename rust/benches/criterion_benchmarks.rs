@@ -1,12 +1,12 @@
 #[cfg(not(target_arch = "wasm32"))]
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-#[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "gpu")]
 use criterion::async_executor::FuturesExecutor;
+#[cfg(not(target_arch = "wasm32"))]
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use colorcrunch::{
     kmeans::{KMeans, KMeansAlgorithm},
-    types::{Vec3, Vec4},
+    types::{Vec3, Vec4, Vec4u},
 };
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
@@ -26,7 +26,6 @@ fn generate_random_pixels(count: usize, seed: u64) -> Vec<Vec3> {
 }
 #[cfg(not(target_arch = "wasm32"))]
 fn generate_random_pixels_vec4(count: usize, seed: u64) -> Vec<Vec4> {
-
     let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
     (0..count)
         .map(|_| {
@@ -34,7 +33,21 @@ fn generate_random_pixels_vec4(count: usize, seed: u64) -> Vec<Vec4> {
                 rng.gen::<f32>() * 255.0,
                 rng.gen::<f32>() * 255.0,
                 rng.gen::<f32>() * 255.0,
-                0.0
+                0.0,
+            ]
+        })
+        .collect()
+}
+
+fn generate_random_pixels_vec4u(count: usize, seed: u64) -> Vec<Vec4u> {
+    let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
+    (0..count)
+        .map(|_| {
+            [
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
+                0,
             ]
         })
         .collect()
@@ -43,6 +56,7 @@ fn generate_random_pixels_vec4(count: usize, seed: u64) -> Vec<Vec4> {
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_kmeans_comparison(c: &mut Criterion) {
     use colorcrunch::kmeans::KMeansConfig;
+    use futures::executor::block_on;
 
     let k_values = [2, 4, 8, 16];
     let data_sizes = [1000, 10000, 100000, 500000];
@@ -50,7 +64,7 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
 
     for &size in &data_sizes {
         let data = generate_random_pixels(size, seed);
-        let data_vec4 = generate_random_pixels_vec4(size, seed);
+        let data_vec4u = generate_random_pixels_vec4u(size, seed);
 
         for &k in &k_values {
             let mut group = c.benchmark_group(format!("kmeans_size_{}_k_{}", size, k));
@@ -63,7 +77,7 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                             k: k as usize,
                             ..Default::default()
                         })
-                            .run_vec3(black_box(&data)),
+                        .run_vec3(black_box(&data)),
                     )
                 })
             });
@@ -76,20 +90,25 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                             k: k as usize,
                             ..Default::default()
                         })
-                            .run_vec3(black_box(&data)),
+                        .run_vec3(black_box(&data)),
                     )
                 })
             });
 
+            // Initialize outside because it takes a while
+            let gpu_kmeans = block_on(
+                KMeans::new(KMeansConfig {
+                    algorithm: KMeansAlgorithm::Lloyd,
+                    k: k as usize,
+                    ..Default::default()
+                })
+                .gpu()
+            ).unwrap();
+
             #[cfg(feature = "gpu")]
             group.bench_function("Lloyd (GPU)", |b| {
-                b.to_async(FuturesExecutor).iter(|| async {
-                    let gpu_kmeans = black_box(KMeans::new(KMeansConfig {
-                        algorithm: KMeansAlgorithm::Lloyd,
-                        k: k as usize,
-                        ..Default::default()
-                    }).gpu().await);
-                    gpu_kmeans.run_async(black_box(&data_vec4)).await
+                b.to_async(FuturesExecutor).iter_with_large_drop(|| async {
+                    gpu_kmeans.run_async(black_box(&data_vec4u)).await
                 })
             });
 
