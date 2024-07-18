@@ -63,7 +63,8 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                             algorithm: KMeansAlgorithm::Hamerly,
                             k: k as usize,
                             ..Default::default()
-                        })).run_vec3(black_box(&data)),
+                        }))
+                        .run_vec3(black_box(&data)),
                     )
                 })
             });
@@ -75,19 +76,18 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                             algorithm: KMeansAlgorithm::Lloyd,
                             k: k as usize,
                             ..Default::default()
-                        })).run_vec3(black_box(&data)),
+                        }))
+                        .run_vec3(black_box(&data)),
                     )
                 })
             });
 
             // Initialize outside because it takes a while
-            let gpu_kmeans = block_on(
-                KMeans::new(KMeansConfig {
-                    algorithm: KMeansAlgorithm::Lloyd,
-                    k: k as usize,
-                    ..Default::default()
-                })
-            );
+            let gpu_kmeans = block_on(KMeans::new(KMeansConfig {
+                algorithm: KMeansAlgorithm::Lloyd,
+                k: k as usize,
+                ..Default::default()
+            }));
 
             #[cfg(feature = "gpu")]
             group.bench_function("Lloyd (GPU)", |b| {

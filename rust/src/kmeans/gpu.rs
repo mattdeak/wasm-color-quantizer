@@ -91,9 +91,9 @@ mod tests {
     use super::*;
     use crate::kmeans::config::KMeansConfig;
     use crate::types::Vec4u;
-    use rand::SeedableRng;
     use rand::rngs::StdRng;
     use rand::Rng;
+    use rand::SeedableRng;
     use statrs::assert_almost_eq;
 
     #[test]
@@ -105,12 +105,14 @@ mod tests {
         // Generate random data
         let mut rng = StdRng::seed_from_u64(SEED);
         let data: Vec<Vec4u> = (0..N)
-            .map(|_| [
-                rng.gen_range(0..255),
-                rng.gen_range(0..255),
-                rng.gen_range(0..255),
-                rng.gen_range(0..255),
-            ])
+            .map(|_| {
+                [
+                    rng.gen_range(0..255),
+                    rng.gen_range(0..255),
+                    rng.gen_range(0..255),
+                    rng.gen_range(0..255),
+                ]
+            })
             .collect();
 
         // Create configurations for each algorithm

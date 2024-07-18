@@ -5,14 +5,13 @@
 const RGBA_CHANNELS: usize = 4;
 use js_sys::Uint8Array;
 
-use crate::quantize::{ColorCruncherBuilder, ColorCruncher};
-use wasm_bindgen::prelude::*;
 use crate::kmeans::gpu::GpuAlgorithm;
-use std;
+use crate::quantize::{ColorCruncher, ColorCruncherBuilder};
 use console_error_panic_hook;
 use console_log;
 use log::Level;
-
+use std;
+use wasm_bindgen::prelude::*;
 
 // On start, load the wasm stuff we need
 #[wasm_bindgen(start)]
@@ -21,8 +20,6 @@ fn start() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     console_log::init_with_level(Level::Warn).expect("Failed to initialize console log");
 }
-
-
 
 #[wasm_bindgen(js_name = ColorCruncher)]
 pub struct WasmColorCruncher(ColorCruncher);
@@ -106,7 +103,6 @@ impl WasmColorCruncherBuilder {
         self.0.initializer = Some(init);
     }
 
-
     #[wasm_bindgen(js_name = withAlgorithm)]
     pub fn with_algorithm(self, algorithm: Algorithm) -> Self {
         let algo = match algorithm.as_str() {
@@ -151,9 +147,10 @@ impl WasmColorCruncherBuilder {
 impl WasmColorCruncher {
     #[wasm_bindgen(constructor)]
     pub fn builder(max_colors: u32, sample_rate: u32) -> WasmColorCruncherBuilder {
-        WasmColorCruncherBuilder::new().with_max_colors(max_colors).with_sample_rate(sample_rate)
+        WasmColorCruncherBuilder::new()
+            .with_max_colors(max_colors)
+            .with_sample_rate(sample_rate)
     }
-
 
     #[wasm_bindgen(js_name = quantizeImage)]
     pub async fn quantize_image(&self, data: &[u8]) -> Result<Uint8Array, String> {
@@ -161,7 +158,6 @@ impl WasmColorCruncher {
         Ok(Uint8Array::from(result.as_slice()))
     }
 
-    
     // TODO
     // #[wasm_bindgen(js_name = createPalette)]
     // pub async fn create_palette(&self, data: &[u8]) -> Result<Vec<Uint8Array>, String> {

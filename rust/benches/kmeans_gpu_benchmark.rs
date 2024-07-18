@@ -64,9 +64,7 @@ criterion_group!(benches, benchmark_kmeans_gpu);
 #[cfg(not(target_arch = "wasm32"))]
 criterion_main!(benches);
 
-
 #[cfg(target_arch = "wasm32")]
 pub fn main() {
     println!("Not supported");
 }
-

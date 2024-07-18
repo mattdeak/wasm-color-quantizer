@@ -31,7 +31,6 @@ impl ColorCruncherBuilder {
         Self::default()
     }
 
-
     pub fn with_max_colors(mut self, max_colors: usize) -> Self {
         self.max_colors = Some(max_colors);
         self
@@ -193,11 +192,13 @@ mod tests {
         let sample_rate = 1;
         let channels = 4;
 
-        let quantizer = block_on(ColorCruncherBuilder::default()
-            .with_max_colors(max_colors)
-            .with_sample_rate(sample_rate)
-            .with_channels(channels)
-            .build());
+        let quantizer = block_on(
+            ColorCruncherBuilder::default()
+                .with_max_colors(max_colors)
+                .with_sample_rate(sample_rate)
+                .with_channels(channels)
+                .build(),
+        );
 
         let result = block_on(quantizer.quantize_image(&data));
         assert_eq!(result.len(), data.len());

@@ -9,7 +9,6 @@ use rand::Rng;
 use statrs::{self, statistics::Statistics};
 use std::time::{Duration, Instant};
 
-
 fn generate_random_pixels_u32(count: usize) -> Vec<Vec4u> {
     let mut rng = rand::thread_rng();
     (0..count)
