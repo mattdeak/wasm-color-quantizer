@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxIterations = document.getElementById('maxIterations');
     const tolerance = document.getElementById('tolerance');
     const seed = document.getElementById('seed');
+    const algorithmWarning = document.getElementById('algorithmWarning');
 
     imageUpload.addEventListener('change', handleImageUpload);
     imagePreview.addEventListener('dragover', handleDragOver);
@@ -129,5 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             document.body.removeChild(a);
         }
+    });
+
+    algorithm.addEventListener('change', function() {
+        algorithmWarning.style.display = this.value === 'lloyd-all-gpu' ? 'block' : 'none';
     });
 });

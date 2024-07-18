@@ -27,10 +27,11 @@
                         <select id="algorithm">
                             <option value="lloyd" selected>Lloyd</option>
                             <option value="hamerly">Hamerly</option>
-                            <option value="lloyd-all-gpu">Lloyd All GPU</option>
                             <option value="lloyd-assignment-gpu">Lloyd Assignment GPU</option>
+                            <option value="lloyd-all-gpu">Lloyd All GPU</option>
                         </select>
                     </div>
+                    <small id="algorithmWarning" style="display: none; color: orange;">This is slower than Lloyd Assignment GPU in most cases</small>
                     <div class="input-group">
                         <label for="maxIterations">Max Iterations</label>
                         <input type="number" id="maxIterations" min="1" value="300">
@@ -83,6 +84,12 @@
         document.getElementById('colorCount').addEventListener('input', function() {
             const warningElement = document.getElementById('colorWarning');
             warningElement.style.display = this.value > 7 ? 'block' : 'none';
+        });
+
+        // Add event listener for algorithm selection
+        document.getElementById('algorithm').addEventListener('change', function() {
+            const warningElement = document.getElementById('algorithmWarning');
+            warningElement.style.display = this.value === 'lloyd-all-gpu' ? 'block' : 'none';
         });
     </script>
 </body>
