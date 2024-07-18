@@ -1,9 +1,24 @@
+#[cfg(feature = "gpu")]
+use crate::kmeans::gpu::GpuAlgorithm;
+use crate::kmeans::initializer::Initializer;
 use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum KMeansAlgorithm {
     Lloyd,
     Hamerly,
+    #[cfg(feature = "gpu")]
+    Gpu(GpuAlgorithm),
+}
+
+#[cfg(feature = "gpu")]
+impl KMeansAlgorithm {
+    pub fn gpu(&self) -> Option<GpuAlgorithm> {
+        match self {
+            KMeansAlgorithm::Gpu(gpu) => Some(*gpu),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for KMeansAlgorithm {
@@ -18,6 +33,7 @@ pub struct KMeansConfig {
     pub max_iterations: usize,
     pub tolerance: f32,
     pub algorithm: KMeansAlgorithm,
+    pub initializer: Initializer,
     pub seed: Option<u64>,
 }
 
@@ -28,6 +44,7 @@ impl Default for KMeansConfig {
             max_iterations: 100,
             tolerance: 0.02,
             algorithm: KMeansAlgorithm::Lloyd,
+            initializer: Initializer::KMeansPlusPlus,
             seed: None,
         }
     }

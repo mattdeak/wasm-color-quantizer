@@ -1,15 +1,18 @@
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "gpu")]
+use criterion::async_executor::FuturesExecutor;
+#[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use colorcrunch::{
     kmeans::{KMeans, KMeansAlgorithm},
-    types::ColorVec,
+    types::{Vec3, Vec4, Vec4u},
 };
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
 #[cfg(not(target_arch = "wasm32"))]
-fn generate_random_pixels(count: usize, seed: u64) -> Vec<ColorVec> {
+fn generate_random_pixels(count: usize, seed: u64) -> Vec<Vec3> {
     let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
     (0..count)
         .map(|_| {
@@ -23,13 +26,32 @@ fn generate_random_pixels(count: usize, seed: u64) -> Vec<ColorVec> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+fn generate_random_pixels_vec4u(count: usize, seed: u64) -> Vec<Vec4u> {
+    let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
+    (0..count)
+        .map(|_| {
+            [
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
+                rng.gen_range(0..=255),
+                0,
+            ]
+        })
+        .collect()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn benchmark_kmeans_comparison(c: &mut Criterion) {
+    use colorcrunch::kmeans::KMeansConfig;
+    use futures::executor::block_on;
+
     let k_values = [2, 4, 8, 16];
     let data_sizes = [1000, 10000, 100000, 500000];
     let seed = 42; // Fixed seed for reproducibility
 
     for &size in &data_sizes {
         let data = generate_random_pixels(size, seed);
+        let data_vec4u = generate_random_pixels_vec4u(size, seed);
 
         for &k in &k_values {
             let mut group = c.benchmark_group(format!("kmeans_size_{}_k_{}", size, k));
@@ -37,9 +59,12 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Hamerly", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new(black_box(k))
-                            .with_algorithm(KMeansAlgorithm::Hamerly)
-                            .run(black_box(&data)),
+                        block_on(KMeans::new(KMeansConfig {
+                            algorithm: KMeansAlgorithm::Hamerly,
+                            k: k as usize,
+                            ..Default::default()
+                        }))
+                        .run_vec3(black_box(&data)),
                     )
                 })
             });
@@ -47,10 +72,27 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Lloyd", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new(black_box(k))
-                            .with_algorithm(KMeansAlgorithm::Lloyd)
-                            .run(black_box(&data)),
+                        block_on(KMeans::new(KMeansConfig {
+                            algorithm: KMeansAlgorithm::Lloyd,
+                            k: k as usize,
+                            ..Default::default()
+                        }))
+                        .run_vec3(black_box(&data)),
                     )
+                })
+            });
+
+            // Initialize outside because it takes a while
+            let gpu_kmeans = block_on(KMeans::new(KMeansConfig {
+                algorithm: KMeansAlgorithm::Lloyd,
+                k: k as usize,
+                ..Default::default()
+            }));
+
+            #[cfg(feature = "gpu")]
+            group.bench_function("Lloyd (GPU)", |b| {
+                b.to_async(FuturesExecutor).iter_with_large_drop(|| async {
+                    gpu_kmeans.run_async(black_box(&data_vec4u)).await
                 })
             });
 
@@ -64,8 +106,8 @@ fn benchmark_euclidean_distance(c: &mut Criterion) {
     use colorcrunch::kmeans;
 
     let mut rng = rand::thread_rng();
-    let a: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
-    let b: ColorVec = [rng.gen(), rng.gen(), rng.gen()];
+    let a: Vec3 = [rng.gen(), rng.gen(), rng.gen()];
+    let b: Vec3 = [rng.gen(), rng.gen(), rng.gen()];
     let mut group = c.benchmark_group("euclidean_distance");
 
     group.bench_function("euclidean_distance_arr", |bencher| {
@@ -80,7 +122,7 @@ fn benchmark_find_closest_centroid(c: &mut Criterion) {
     use colorcrunch::kmeans;
     let mut rng = rand::thread_rng();
     let pixel = [rng.gen(), rng.gen(), rng.gen()];
-    let centroids: Vec<ColorVec> = (0..100)
+    let centroids: Vec<Vec3> = (0..100)
         .map(|_| [rng.gen(), rng.gen(), rng.gen()])
         .collect();
 

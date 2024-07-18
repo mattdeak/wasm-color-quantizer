@@ -4,18 +4,18 @@ PYTHON_ENV = .venv
 ROOT_DIR := $(shell pwd)
 
 build:
-	cd rust && wasm-pack build --target web --profiling
+	cd rust && wasm-pack build --target web --profiling --features wasm
 	cd ..
 	rm -rf pkg
 	mv rust/pkg .
-	rm -f pkg/.gitignore pkg/*.ts
+	rm -f pkg/.gitignore
 
 build-release:
-	cd rust && wasm-pack build --target web --release
+	cd rust && wasm-pack build --target web --release --features wasm
 	cd ..
 	rm -rf pkg
 	mv rust/pkg .
-	rm -f pkg/.gitignore pkg/*.ts
+	rm -f pkg/.gitignore
 
 analysis-env:
 	if ! [ -d $(PYTHON_ENV) ]; then \
@@ -27,7 +27,7 @@ bench: analysis-env
 	$(eval PREVIOUS_BENCHMARK := $(shell ls -t benchmark_history/ | head -n 1))
 	$(eval NEW_BENCHMARK := bench_$(shell date +%s).txt)
 	@echo "Benchmarking into $(NEW_BENCHMARK)"
-	cd rust && cargo wasi bench --profile release >> $(ROOT_DIR)/benchmark_history/$(NEW_BENCHMARK)
+	cd rust && cargo wasi bench --profile release --features gpu >> $(ROOT_DIR)/benchmark_history/$(NEW_BENCHMARK)
 	@echo "Comparing $(PREVIOUS_BENCHMARK) to $(NEW_BENCHMARK)"
 	cd $(ROOT_DIR) && $(PYTHON_ENV)/bin/python3 scripts/compare_benchmarks.py benchmark_history/$(PREVIOUS_BENCHMARK) benchmark_history/$(NEW_BENCHMARK)
 

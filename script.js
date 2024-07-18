@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const algorithm = document.getElementById('algorithm');
     const maxIterations = document.getElementById('maxIterations');
     const tolerance = document.getElementById('tolerance');
+    const seed = document.getElementById('seed');
+    const algorithmWarning = document.getElementById('algorithmWarning');
 
     imageUpload.addEventListener('change', handleImageUpload);
     imagePreview.addEventListener('dragover', handleDragOver);
@@ -53,15 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getBestSampleRate(totalPixels, maxColors) {
-        // TODO: lol
-        return 1;
+        // TODO: Implement a better sample rate calculation
+        return 1
     }
 
     processBtn.addEventListener('click', async () => {
         if (uploadedImage) {
             const before = performance.now();
             const img = new Image();
-            img.onload = function() {
+            img.onload = async function() {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 canvas.width = img.width;
@@ -75,32 +77,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedAlgorithm = algorithm.value;
                 const maxIter = parseInt(maxIterations.value);
                 const tol = parseFloat(tolerance.value);
+                const seedValue = seed.value ? BigInt(seed.value) : undefined;
 
                 console.log(`Image data length: ${imageData.data.length}`);
                 const sampleRate = getBestSampleRate(imageData.data.length / 4, numColors);
                 console.log(`Selected Sample rate: ${sampleRate}`);
 
-                // data, max colors, sample rate, # channels in image data
-                let cruncher = new ColorCruncher(numColors, sampleRate, "RGBA");
+                try {
+                    let cruncherBuilder = new ColorCruncher(numColors, sampleRate)
+                        .withAlgorithm(selectedAlgorithm)
+                        .withMaxIterations(maxIter)
+                        .withTolerance(tol);
+                    
+                    if (seedValue !== undefined) {
+                        cruncherBuilder = cruncherBuilder.withSeed(seedValue);
+                    }
+                    
+                    const cruncher = await cruncherBuilder.build();
+                    const processedData = await cruncher.quantizeImage(imageData.data);
+                    
+                    const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
+                        colorSpace: 'srgb'
+                    });
+                    ctx.putImageData(processedImageData, 0, 0);
+                    
+                    const processedImage = document.getElementById('processedImage');
+                    processedImage.src = canvas.toDataURL();
+                    processedImage.style.display = 'block';
+                    document.querySelector('#processedImagePreview p').style.display = 'none';
+                    downloadBtn.disabled = false;
 
-                cruncher.setAlgorithm(selectedAlgorithm);
-                cruncher.setMaxIterations(maxIter);
-                cruncher.setTolerance(tol);
-
-                const processedData = cruncher.quantizeImage(imageData.data);
-                const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
-                    colorSpace: 'srgb'
-                });
-                ctx.putImageData(processedImageData, 0, 0);
-                
-                const processedImage = document.getElementById('processedImage');
-                processedImage.src = canvas.toDataURL();
-                processedImage.style.display = 'block';
-                document.querySelector('#processedImagePreview p').style.display = 'none';
-                downloadBtn.disabled = false;
-
-                const after = performance.now();
-                console.log(`Time taken: ${after - before}ms`);
+                    const after = performance.now();
+                    console.log(`Time taken: ${after - before}ms`);
+                } catch (error) {
+                    console.error("Error processing image:", error);
+                    alert("An error occurred while processing the image. Please try again.");
+                }
             };
             img.src = URL.createObjectURL(uploadedImage);
         } else {
@@ -118,5 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             document.body.removeChild(a);
         }
+    });
+
+    algorithm.addEventListener('change', function() {
+        algorithmWarning.style.display = this.value === 'lloyd-all-gpu' ? 'block' : 'none';
     });
 });
