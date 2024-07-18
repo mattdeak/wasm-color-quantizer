@@ -6,6 +6,7 @@
 /analysis
 
 *perf.data*
+*.perf
 flamegraph.svg
 
 *heaptrack*
