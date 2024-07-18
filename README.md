@@ -15,3 +15,6 @@ Will update soon with better sampling to handle very large N-color requests or h
 I might eventually get around to splitting out the Rust package if I add enough functionality (other clustering methods, maybe), but feel free to clone this and rip it all out if you want.
 
 Feel free to use this tool for whatever you like.
+
+### WebGPU
+Added support for WebGPU. If you have a browser that supports it, you can run K-Means on the GPU. This can be faster, particularly for big images, but Hamerly on CPU will be quicker on most images smaller than 1000x1000 if the color space is < 6.
