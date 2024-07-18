@@ -24,21 +24,8 @@ fn generate_random_pixels(count: usize, seed: u64) -> Vec<Vec3> {
         })
         .collect()
 }
-#[cfg(not(target_arch = "wasm32"))]
-fn generate_random_pixels_vec4(count: usize, seed: u64) -> Vec<Vec4> {
-    let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
-    (0..count)
-        .map(|_| {
-            [
-                rng.gen::<f32>() * 255.0,
-                rng.gen::<f32>() * 255.0,
-                rng.gen::<f32>() * 255.0,
-                0.0,
-            ]
-        })
-        .collect()
-}
 
+#[cfg(not(target_arch = "wasm32"))]
 fn generate_random_pixels_vec4u(count: usize, seed: u64) -> Vec<Vec4u> {
     let mut rng = StdRng::seed_from_u64(seed ^ (count as u64));
     (0..count)
@@ -72,12 +59,11 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Hamerly", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new(KMeansConfig {
+                        block_on(KMeans::new(KMeansConfig {
                             algorithm: KMeansAlgorithm::Hamerly,
                             k: k as usize,
                             ..Default::default()
-                        })
-                        .run_vec3(black_box(&data)),
+                        })).run_vec3(black_box(&data)),
                     )
                 })
             });
@@ -85,12 +71,11 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
             group.bench_function("Lloyd", |b| {
                 b.iter(|| {
                     black_box(
-                        KMeans::new(KMeansConfig {
+                        block_on(KMeans::new(KMeansConfig {
                             algorithm: KMeansAlgorithm::Lloyd,
                             k: k as usize,
                             ..Default::default()
-                        })
-                        .run_vec3(black_box(&data)),
+                        })).run_vec3(black_box(&data)),
                     )
                 })
             });
@@ -102,9 +87,7 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
                     k: k as usize,
                     ..Default::default()
                 })
-                .gpu(),
-            )
-            .unwrap();
+            );
 
             #[cfg(feature = "gpu")]
             group.bench_function("Lloyd (GPU)", |b| {

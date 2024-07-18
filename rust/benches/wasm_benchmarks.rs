@@ -9,19 +9,6 @@ use rand::Rng;
 use statrs::{self, statistics::Statistics};
 use std::time::{Duration, Instant};
 
-fn generate_random_pixels(count: usize) -> Vec<Vec4> {
-    let mut rng = rand::thread_rng();
-    (0..count)
-        .map(|_| {
-            [
-                rng.gen::<f32>() * 255.0,
-                rng.gen::<f32>() * 255.0,
-                rng.gen::<f32>() * 255.0,
-                0.0,
-            ]
-        })
-        .collect()
-}
 
 fn generate_random_pixels_u32(count: usize) -> Vec<Vec4u> {
     let mut rng = rand::thread_rng();
@@ -32,6 +19,20 @@ fn generate_random_pixels_u32(count: usize) -> Vec<Vec4u> {
                 rng.gen_range(0..=255),
                 rng.gen_range(0..=255),
                 rng.gen_range(0..=255),
+            ]
+        })
+        .collect()
+}
+
+fn generate_random_pixels(count: usize) -> Vec<Vec4> {
+    let mut rng = rand::thread_rng();
+    (0..count)
+        .map(|_| {
+            [
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                rng.gen::<f32>() * 255.0,
+                0.0,
             ]
         })
         .collect()
@@ -52,14 +53,14 @@ pub extern "C" fn benchmark() -> f64 {
     for &size in &data_sizes {
         for &k in &k_values {
             for algorithm in &algorithms {
-                let kmeans_cpu = KMeans::new(KMeansConfig {
+                let kmeans_cpu = block_on(KMeans::new(KMeansConfig {
                     algorithm: algorithm.clone(),
                     k: k as usize,
                     max_iterations: 1000,
                     tolerance: 0.02,
                     seed: Some(0),
                     ..Default::default()
-                });
+                }));
 
                 let kmeans_gpu = block_on(KMeans::new_gpu(KMeansConfig {
                     algorithm: algorithm.clone(),
