@@ -17,4 +17,4 @@ I might eventually get around to splitting out the Rust package if I add enough 
 Feel free to use this tool for whatever you like.
 
 ### WebGPU
-If you have a browser that supports WebGPU, you can run the quantizer on GPU (under Advanced, select a GPU algorithm). This can be faster, particularly for big images, but Hamerly on CPU will be quicker on most images smaller than 1000x1000 if the color space.
+If you have a browser that supports WebGPU, you can run the quantizer on GPU (under Advanced, select a GPU algorithm). This can be faster, particularly for big images, but Hamerly on CPU will be quicker on most images smaller than 1000x1000 if the desired number of colors is reasonably low.
