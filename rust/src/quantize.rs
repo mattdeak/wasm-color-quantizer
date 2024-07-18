@@ -1,5 +1,4 @@
 use crate::kmeans::find_closest_centroid;
-use crate::kmeans::gpu::GpuAlgorithm;
 use crate::kmeans::Initializer;
 use crate::kmeans::KMeans;
 use crate::kmeans::KMeansAlgorithm;
