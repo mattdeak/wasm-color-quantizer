@@ -17,4 +17,4 @@ I might eventually get around to splitting out the Rust package if I add enough 
 Feel free to use this tool for whatever you like.
 
 ### WebGPU
-Added support for WebGPU. If you have a browser that supports it, you can run K-Means on the GPU. This can be faster, particularly for big images, but Hamerly on CPU will be quicker on most images smaller than 1000x1000 if the color space is < 6.
+If you have a browser that supports WebGPU, you can run the quantizer on GPU (under Advanced, select a GPU algorithm). This can be faster, particularly for big images, but Hamerly on CPU will be quicker on most images smaller than 1000x1000 if the color space.
