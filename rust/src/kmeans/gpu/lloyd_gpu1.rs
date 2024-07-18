@@ -16,6 +16,8 @@ use wgpu::{
 
 type Centroids = Vec<Vec4>;
 
+const WORKGROUP_SIZE: u32 = 256;
+
 struct ProcessBuffers {
     pixel_buffer: Buffer,
     centroid_buffer: Buffer,
@@ -264,7 +266,7 @@ impl LloydAssignmentsOnly {
 
         // This should probably be a variable we can configure
         // but it requires templating the shader, which I don't want to do yet.
-        let num_workgroups = ((pixels.len() as u32 + 63) / 64) as u32;
+        let num_workgroups = (pixels.len() as u32 + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
 
         {
             let mut pass = encoder.begin_compute_pass(&ComputePassDescriptor {
@@ -327,7 +329,7 @@ mod tests {
             k: 3,
             max_iterations: 10,
             tolerance: 0.001,
-            algorithm: GpuAlgorithm::LloydAssignmentsAndCentroidInfo.into(),
+            algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
             initializer: Initializer::Random,
             seed: Some(42),
         }
@@ -373,7 +375,7 @@ mod tests {
             k: 2,
             max_iterations: 100,
             tolerance: 0.001,
-            algorithm: GpuAlgorithm::LloydAssignmentsAndCentroidInfo.into(),
+            algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
             initializer: Initializer::Random,
             seed: Some(42),
         };

@@ -1,4 +1,5 @@
 use crate::kmeans::find_closest_centroid;
+use crate::kmeans::gpu::GpuAlgorithm;
 use crate::kmeans::Initializer;
 use crate::kmeans::KMeans;
 use crate::kmeans::KMeansAlgorithm;
@@ -16,17 +17,22 @@ pub struct ColorCruncher {
 
 #[derive(Clone, Debug, Default)]
 pub struct ColorCruncherBuilder {
-    max_colors: Option<usize>,
-    channels: Option<usize>,
-    sample_rate: Option<usize>,
-    tolerance: Option<f32>,
-    max_iterations: Option<usize>,
-    initializer: Option<Initializer>,
-    algorithm: Option<KMeansAlgorithm>,
-    seed: Option<u64>,
+    pub max_colors: Option<usize>,
+    pub channels: Option<usize>,
+    pub sample_rate: Option<usize>,
+    pub tolerance: Option<f32>,
+    pub max_iterations: Option<usize>,
+    pub initializer: Option<Initializer>,
+    pub algorithm: Option<KMeansAlgorithm>,
+    pub seed: Option<u64>,
 }
 
 impl ColorCruncherBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+
     pub fn with_max_colors(mut self, max_colors: usize) -> Self {
         self.max_colors = Some(max_colors);
         self
@@ -67,9 +73,9 @@ impl ColorCruncherBuilder {
         self
     }
 
-    pub fn build(&self) -> ColorCruncher {
+    pub async fn build(&self) -> ColorCruncher {
         let kmeans_config = self.build_config();
-        let kmeans = KMeans::new(kmeans_config.clone());
+        let kmeans = KMeans::new(kmeans_config.clone()).await;
 
         ColorCruncher {
             kmeans,
@@ -188,11 +194,11 @@ mod tests {
         let sample_rate = 1;
         let channels = 4;
 
-        let quantizer = ColorCruncherBuilder::default()
+        let quantizer = block_on(ColorCruncherBuilder::default()
             .with_max_colors(max_colors)
             .with_sample_rate(sample_rate)
             .with_channels(channels)
-            .build();
+            .build());
 
         let result = block_on(quantizer.quantize_image(&data));
         assert_eq!(result.len(), data.len());

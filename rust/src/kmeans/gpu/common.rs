@@ -6,11 +6,17 @@ pub async fn common_wgpu_setup() -> Result<(Instance, Adapter, Device, Queue), S
     let adapter = instance
         .request_adapter(&RequestAdapterOptions::default())
         .await
-        .unwrap();
+        .expect("Failed to request adapter");
 
     let (device, queue) = adapter
-        .request_device(&DeviceDescriptor::default(), None)
-        .await
-        .unwrap();
+        .request_device(&DeviceDescriptor {
+            label: None,
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+        },
+        None,
+    )
+    .await
+    .expect("Failed to request device");
     Ok((instance, adapter, device, queue))
 }

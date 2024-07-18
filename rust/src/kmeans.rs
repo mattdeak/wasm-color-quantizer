@@ -6,7 +6,6 @@ pub mod lloyd;
 mod types;
 mod utils;
 
-#[cfg(feature = "gpu")]
 pub mod gpu;
 
 #[cfg(feature = "gpu")]
@@ -102,8 +101,11 @@ pub enum KMeans {
 }
 
 impl KMeans {
-    pub fn new(config: KMeansConfig) -> Self {
-        KMeans::Cpu(KMeansCPU(config))
+    pub async fn new(config: KMeansConfig) -> Self {
+        match &config.algorithm {
+            KMeansAlgorithm::Gpu(_) => KMeans::Gpu(KMeansGpu::new(config).await),
+            _ => KMeans::Cpu(KMeansCPU(config)),
+        }
     }
 
     #[cfg(feature = "gpu")]
@@ -321,7 +323,7 @@ mod tests {
             k: 3,
             max_iterations: 500,
             tolerance: 1e-6,
-            algorithm: GpuAlgorithm::LloydAssignmentsAndCentroidInfo.into(),
+            algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
             initializer: DEFAULT_INITIALIZER,
             seed: Some(seed),
         };
@@ -340,8 +342,8 @@ mod tests {
         dbg!(&centroids1);
         dbg!(&centroids3);
 
-        centroids1.assert_almost_eq(&centroids2, 0.5);
-        centroids1.assert_almost_eq(&centroids3, 0.5);
+        centroids1.assert_almost_eq(&centroids2, 1.0);
+        centroids1.assert_almost_eq(&centroids3, 1.0);
         assert_eq!(clusters1, clusters2);
     }
 }

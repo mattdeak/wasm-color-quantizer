@@ -13,9 +13,10 @@ crate-type = ["cdylib", "rlib"]
 debug = true
 
 [features]
-default = []
+default = ["wasm","gpu"]
 python = ["pyo3","numpy"]
-gpu = ["wgpu", "env_logger", "log"]
+wasm = ["js-sys", "wasm-bindgen", "console_log", "console_error_panic_hook"]
+gpu = ["wgpu", "env_logger", "log", "bytemuck", "wasm-bindgen-futures"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_futures"] }
@@ -37,16 +38,19 @@ getrandom = { version = "0.2.15", features = ["js"] }
 pyo3 = { version = "0.21.0", features = ["extension-module"], optional=true }
 numpy = { version = "0.21.0", optional = true }
 
-rand = "0.8.5"
-wasm-bindgen = "0.2.92"
-itertools = "0.13.0"
-wgpu = { version = "0.20.1", optional = true }
+bytemuck = { version = "1.16.1", features = ["derive"], optional = true }
 env_logger = { version = "0.11.3", optional = true }
-log = { version = "0.4.22", optional = true }
-futures-intrusive = "0.5.0"
-bytemuck = { version = "1.16.1", features = ["derive"] }
 futures = "0.3.30"
-
+futures-intrusive = "0.5.0"
+itertools = "0.13.0"
+js-sys = { version = "0.3.69", optional = true }
+log = { version = "0.4.22", optional = true }
+rand = "0.8.5"
+wasm-bindgen = { version = "0.2.92", optional = true}
+wgpu = { version = "0.20.1", optional = true }
+wasm-bindgen-futures = { version = "0.4.42", optional = true }
+console_log = { version = "1.0.0", optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
 
 
 [dev-dependencies]

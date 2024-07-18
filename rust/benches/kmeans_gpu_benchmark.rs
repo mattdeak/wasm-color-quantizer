@@ -1,16 +1,19 @@
 use colorcrunch::kmeans::gpu::{GpuAlgorithm, KMeansGpu};
 use colorcrunch::kmeans::{Initializer, KMeansConfig};
 use colorcrunch::types::Vec4u;
+
+#[cfg(not(target_arch = "wasm32"))]
 use criterion::async_executor::FuturesExecutor;
+#[cfg(not(target_arch = "wasm32"))]
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use futures::executor::block_on;
 use rand::prelude::*;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn benchmark_kmeans_gpu(c: &mut Criterion) {
     let algorithms = vec![
         GpuAlgorithm::LloydAssignmentsAndCentroids,
         GpuAlgorithm::LloydAssignmentsOnly,
-        GpuAlgorithm::LloydAssignmentsAndCentroidInfo,
     ];
 
     let mut rng = thread_rng();
@@ -56,5 +59,14 @@ fn benchmark_kmeans_gpu(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 criterion_group!(benches, benchmark_kmeans_gpu);
+#[cfg(not(target_arch = "wasm32"))]
 criterion_main!(benches);
+
+
+#[cfg(target_arch = "wasm32")]
+pub fn main() {
+    println!("Not supported");
+}
+

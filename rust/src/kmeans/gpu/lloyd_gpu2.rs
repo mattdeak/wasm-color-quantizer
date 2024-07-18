@@ -15,6 +15,8 @@ use wgpu::{
 
 type Centroids = Vec<Vec4>;
 
+const WORKGROUP_SIZE: u32 = 256;
+
 struct ProcessBuffers {
     pixel_buffer: Buffer,
     centroid_buffer: MappableBuffer,
@@ -284,7 +286,7 @@ impl LloydAssignmentsAndCentroids {
             .device
             .create_command_encoder(&CommandEncoderDescriptor { label: None });
 
-        let num_workgroups = ((pixel_count as u32 + 63) / 64) as u32;
+        let num_workgroups = (pixel_count as u32 + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
 
         {
             let mut pass = encoder.begin_compute_pass(&ComputePassDescriptor {
