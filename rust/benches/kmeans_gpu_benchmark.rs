@@ -35,7 +35,7 @@ fn benchmark_kmeans_gpu(c: &mut Criterion) {
     for algorithm in algorithms {
         let config = KMeansConfig {
             k: 10,
-            max_iterations: 10,
+            max_iterations: 100,
             tolerance: 0.001,
             algorithm: algorithm.into(),
             initializer: Initializer::Random,

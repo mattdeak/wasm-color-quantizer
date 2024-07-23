@@ -3,7 +3,6 @@
 pub mod cubecl;
 pub mod wgpu;
 
-use ::cubecl::cuda::CudaRuntime;
 use ::cubecl::wgpu::WgpuRuntime;
 use futures::executor::block_on;
 
@@ -155,7 +154,6 @@ mod tests {
 
         // Compare results
         for i in 1..results.len() {
-            dbg!("Comparing results for algorithm {}", i);
             let (assignments_a, centroids_a) = &results[0];
             let (assignments_b, centroids_b) = &results[i];
 

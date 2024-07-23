@@ -29,7 +29,7 @@ pub struct WasmColorCruncherBuilder(ColorCruncherBuilder);
 
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
-export type Algorithm = "lloyd" | "hamerly" | "lloyd-all-gpu" | "lloyd-assignment-gpu";
+export type Algorithm = "lloyd" | "hamerly" | "lloyd-assignment-cube" | "lloyd-assignment-gpu";
 export type Initializer = "kmeans++" | "random";
 "#;
 
@@ -108,7 +108,7 @@ impl WasmColorCruncherBuilder {
         let algo = match algorithm.as_str() {
             "lloyd" => crate::kmeans::KMeansAlgorithm::Lloyd,
             "hamerly" => crate::kmeans::KMeansAlgorithm::Hamerly,
-            "lloyd-all-gpu" => GpuAlgorithm::LloydAssignmentsAndCentroids.into(),
+            "lloyd-assignment-cube" => GpuAlgorithm::LloydAssignmentCubeCl.into(),
             "lloyd-assignment-gpu" => GpuAlgorithm::LloydAssignmentsOnly.into(),
             _ => panic!("Invalid algorithm: {}", algorithm),
         };
@@ -120,7 +120,7 @@ impl WasmColorCruncherBuilder {
         let algo = match algorithm.as_str() {
             "lloyd" => crate::kmeans::KMeansAlgorithm::Lloyd,
             "hamerly" => crate::kmeans::KMeansAlgorithm::Hamerly,
-            "lloyd-assignment-gpu-cube" => GpuAlgorithm::LloydAssignmentCubeCl.into(),
+            "lloyd-assignment-cube" => GpuAlgorithm::LloydAssignmentCubeCl.into(),
             "lloyd-assignment-gpu" => GpuAlgorithm::LloydAssignmentsOnly.into(),
             _ => panic!("Invalid algorithm: {}", algorithm),
         };

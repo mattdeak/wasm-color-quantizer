@@ -1,4 +1,4 @@
-use cubecl::{cuda::CudaRuntime, prelude::*, wgpu::WgpuRuntime};
+use cubecl::{prelude::*, wgpu::WgpuRuntime};
 
 use crate::{
     kmeans::{types::KMeansResult, utils::has_converged, KMeansConfig},
@@ -10,7 +10,6 @@ const CUBE_DIM_X: u32 = 256;
 
 pub enum CubeKMeansImpl {
     Wgpu(CubeKMeans<WgpuRuntime>),
-    Cuda(CubeKMeans<CudaRuntime>),
 }
 
 pub struct CubeKMeans<R: Runtime> {
@@ -48,7 +47,6 @@ impl<R: Runtime> CubeKMeans<R> {
             self.config.seed,
         );
 
-        dbg!("Centroids", &centroids);
         let mut new_centroids = centroids.clone();
         let mut assignments = vec![0; pixels.len()];
 
@@ -80,7 +78,6 @@ impl<R: Runtime> CubeKMeans<R> {
     ) {
         let new_assignments = self.launch_assignment_update_kernel(pixels, centroids);
         assignments.copy_from_slice(&new_assignments);
-        dbg!(&assignments);
 
         // update centroids
         new_centroids.fill([0.0; 4]);
@@ -88,7 +85,7 @@ impl<R: Runtime> CubeKMeans<R> {
         for i in 0..pixels.len() {
             let point = pixels[i];
             let assignment = assignments[i];
-            new_centroids[assignment].add(&point);
+            new_centroids[assignment] = new_centroids[assignment].add(&point);
             centroid_counts[assignment] += 1;
         }
 
@@ -106,6 +103,7 @@ impl<R: Runtime> CubeKMeans<R> {
         let centroid_handle = self.client.create(bytemuck::cast_slice(centroids));
         let pixel_handle = self.client.create(bytemuck::cast_slice(pixels));
         let assignment_handle = self.client.empty(pixels.len() * std::mem::size_of::<u32>());
+
 
         // Todo: We're remaking data on the gpu that can be left there
         // this is stupid
@@ -173,9 +171,9 @@ mod tests {
         let points = vec![
             [1, 1, 1, 1],
             [2, 3, 3, 1],
-            [2, 3, 3, 1],
-            [2, 3, 3, 1],
-            [3, 3, 3, 1],
+            [2, 4, 3, 1],
+            [2, 5, 3, 1],
+            [3, 4, 2, 1],
         ];
 
         let k = 2;

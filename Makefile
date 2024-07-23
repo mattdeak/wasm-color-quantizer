@@ -4,14 +4,14 @@ PYTHON_ENV = .venv
 ROOT_DIR := $(shell pwd)
 
 build:
-	cd rust && wasm-pack build --target web --profiling --features wasm
+	cd rust && wasm-pack build --target web --profiling --features wasm,gpu
 	cd ..
 	rm -rf pkg
 	mv rust/pkg .
 	rm -f pkg/.gitignore
 
 build-release:
-	cd rust && wasm-pack build --target web --release --features wasm
+	cd rust && wasm-pack build --target web --release --features wasm,gpu
 	cd ..
 	rm -rf pkg
 	mv rust/pkg .

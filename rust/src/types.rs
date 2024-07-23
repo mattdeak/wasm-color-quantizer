@@ -4,7 +4,7 @@ pub type Vec4u = [u32; 4];
 
 pub trait GPUVector {}
 pub trait VectorExt:
-    Clone + Copy + std::ops::Index<usize, Output = f32> + std::ops::IndexMut<usize> + std::fmt::Debug
+    Clone + Copy + std::ops::Index<usize, Output = f32> + std::ops::IndexMut<usize> + std::fmt::Debug + PartialEq
 {
     fn add(&self, other: &Self) -> Self;
     fn sub(&self, other: &Self) -> Self;

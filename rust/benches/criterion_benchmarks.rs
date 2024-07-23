@@ -42,7 +42,7 @@ fn generate_random_pixels_vec4u(count: usize, seed: u64) -> Vec<Vec4u> {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_kmeans_comparison(c: &mut Criterion) {
-    use colorcrunch::kmeans::KMeansConfig;
+    use colorcrunch::kmeans::{gpu::GpuAlgorithm, KMeansConfig};
     use futures::executor::block_on;
 
     let k_values = [2, 4, 8, 16];
@@ -84,13 +84,27 @@ fn benchmark_kmeans_comparison(c: &mut Criterion) {
 
             // Initialize outside because it takes a while
             let gpu_kmeans = block_on(KMeans::new(KMeansConfig {
-                algorithm: KMeansAlgorithm::Lloyd,
+                algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
                 k: k as usize,
                 ..Default::default()
             }));
 
             #[cfg(feature = "gpu")]
             group.bench_function("Lloyd (GPU)", |b| {
+                b.to_async(FuturesExecutor).iter_with_large_drop(|| async {
+                    gpu_kmeans.run_async(black_box(&data_vec4u)).await
+                })
+            });
+
+            // Initialize outside because it takes a while
+            let gpu_kmeans = block_on(KMeans::new(KMeansConfig {
+                algorithm: GpuAlgorithm::LloydAssignmentCubeCl.into(),
+                k: k as usize,
+                ..Default::default()
+            }));
+
+            #[cfg(feature = "gpu")]
+            group.bench_function("Lloyd CubeCL (GPU)", |b| {
                 b.to_async(FuturesExecutor).iter_with_large_drop(|| async {
                     gpu_kmeans.run_async(black_box(&data_vec4u)).await
                 })

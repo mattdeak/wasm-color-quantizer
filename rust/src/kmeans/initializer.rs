@@ -76,19 +76,19 @@ fn kmeans_plus_plus<T: VectorExt>(data: &[T], k: usize, seed: Option<u64>) -> Ve
     centroids
 }
 
-pub fn initialize_random<T: Copy>(data: &[T], k: usize, seed: Option<u64>) -> Vec<T> {
-    // Seed the RNG if provided, otherwise use the current time
-    let mut rng = {
-        if let Some(seed) = seed {
-            rand::rngs::StdRng::seed_from_u64(seed)
-        } else {
-            rand::rngs::StdRng::from_entropy()
-        }
-    };
-
+pub fn initialize_random<T: Copy + PartialEq>(data: &[T], k: usize, seed: Option<u64>) -> Vec<T> {
+    let mut rng = get_seedable_rng(seed);
     let mut centroids = Vec::with_capacity(k);
-    for centroid in data.choose_multiple(&mut rng, k) {
-        centroids.push(*centroid);
+    let mut indices: Vec<usize> = (0..data.len()).collect();
+
+    while centroids.len() < k && !indices.is_empty() {
+        let idx = rng.gen_range(0..indices.len());
+        let data_idx = indices.swap_remove(idx);
+        let candidate = data[data_idx];
+        
+        if !centroids.contains(&candidate) {
+            centroids.push(candidate);
+        }
     }
 
     centroids
