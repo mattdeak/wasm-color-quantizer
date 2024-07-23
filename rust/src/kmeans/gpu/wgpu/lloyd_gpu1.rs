@@ -231,7 +231,7 @@ impl LloydAssignmentsOnly {
 
         while iterations < self.config.max_iterations {
             let (new_assignments, new_centroids) =
-                self.run_iteration(&pixels, &process_buffers).await?;
+                self.run_iteration(pixels, &process_buffers).await?;
 
             if has_converged(&centroids, &new_centroids, self.config.tolerance) {
                 centroids = new_centroids;

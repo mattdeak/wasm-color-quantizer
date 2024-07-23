@@ -120,7 +120,7 @@ impl WasmColorCruncherBuilder {
         let algo = match algorithm.as_str() {
             "lloyd" => crate::kmeans::KMeansAlgorithm::Lloyd,
             "hamerly" => crate::kmeans::KMeansAlgorithm::Hamerly,
-            "lloyd-all-gpu" => GpuAlgorithm::LloydAssignmentsAndCentroids.into(),
+            "lloyd-assignment-gpu-cube" => GpuAlgorithm::LloydAssignmentCubeCl.into(),
             "lloyd-assignment-gpu" => GpuAlgorithm::LloydAssignmentsOnly.into(),
             _ => panic!("Invalid algorithm: {}", algorithm),
         };

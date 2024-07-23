@@ -1,17 +1,18 @@
 #![cfg(feature = "gpu")]
 
-mod buffers;
-mod common;
-mod lloyd_gpu1;
-mod lloyd_gpu2;
+pub mod cubecl;
+pub mod wgpu;
 
+use ::cubecl::cuda::CudaRuntime;
+use ::cubecl::wgpu::WgpuRuntime;
 use futures::executor::block_on;
 
 use crate::kmeans::config::KMeansConfig;
 use crate::types::{Vec4, Vec4u};
 
-use self::lloyd_gpu1::LloydAssignmentsOnly;
-use self::lloyd_gpu2::LloydAssignmentsAndCentroids;
+use self::cubecl::CubeKMeans;
+use self::wgpu::LloydAssignmentsAndCentroids;
+use self::wgpu::LloydAssignmentsOnly;
 
 use super::types::KMeansError;
 use super::KMeansAlgorithm;
@@ -20,6 +21,7 @@ use super::KMeansAlgorithm;
 pub enum GpuAlgorithm {
     LloydAssignmentsOnly,
     LloydAssignmentsAndCentroids,
+    LloydAssignmentCubeCl,
 }
 
 impl TryFrom<KMeansAlgorithm> for GpuAlgorithm {
@@ -43,6 +45,7 @@ impl From<GpuAlgorithm> for KMeansAlgorithm {
 enum AlgorithmImpl {
     LloydAssignmentsOnly(LloydAssignmentsOnly),
     LloydAssignmentsAndCentroids(LloydAssignmentsAndCentroids),
+    LloydAssignmentCubeClWgpu(CubeKMeans<WgpuRuntime>),
 }
 
 #[derive(Debug)]
@@ -63,6 +66,12 @@ impl KMeansGpu {
                         LloydAssignmentsAndCentroids::from_config(config.clone()).await,
                     )
                 }
+                GpuAlgorithm::LloydAssignmentCubeCl => AlgorithmImpl::LloydAssignmentCubeClWgpu(
+                    CubeKMeans::<WgpuRuntime>::from_device_and_config(
+                        Default::default(),
+                        config.clone(),
+                    ),
+                ),
             };
             Self {
                 config: config.clone(),
@@ -82,6 +91,7 @@ impl KMeansGpu {
         match &self.algorithm {
             AlgorithmImpl::LloydAssignmentsOnly(lloyd) => lloyd.run_async(data).await,
             AlgorithmImpl::LloydAssignmentsAndCentroids(lloyd) => lloyd.run_async(data).await,
+            AlgorithmImpl::LloydAssignmentCubeClWgpu(cube) => cube.run(data),
         }
     }
 }
@@ -127,7 +137,8 @@ mod tests {
 
         let algorithms = vec![
             GpuAlgorithm::LloydAssignmentsOnly,
-            GpuAlgorithm::LloydAssignmentsAndCentroids,
+            // GpuAlgorithm::LloydAssignmentsAndCentroids,
+            GpuAlgorithm::LloydAssignmentCubeCl,
         ];
 
         let mut results = Vec::new();
@@ -144,6 +155,7 @@ mod tests {
 
         // Compare results
         for i in 1..results.len() {
+            dbg!("Comparing results for algorithm {}", i);
             let (assignments_a, centroids_a) = &results[0];
             let (assignments_b, centroids_b) = &results[i];
 

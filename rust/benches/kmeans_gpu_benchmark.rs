@@ -12,8 +12,9 @@ use rand::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 fn benchmark_kmeans_gpu(c: &mut Criterion) {
     let algorithms = vec![
-        GpuAlgorithm::LloydAssignmentsAndCentroids,
-        GpuAlgorithm::LloydAssignmentsOnly,
+        // GpuAlgorithm::LloydAssignmentsAndCentroids,
+        // GpuAlgorithm::LloydAssignmentsOnly,
+        GpuAlgorithm::LloydAssignmentCubeCl,
     ];
 
     let mut rng = thread_rng();
@@ -46,10 +47,9 @@ fn benchmark_kmeans_gpu(c: &mut Criterion) {
             BenchmarkId::from_parameter(format!("{:?}", algorithm)),
             &kmeans,
             |b, kmeans| {
-                b.to_async(FuturesExecutor).iter_with_large_drop(|| async {
+                b.iter_with_large_drop(|| async {
                     kmeans
-                        .run_async(black_box(&pixels))
-                        .await
+                        .run(black_box(&pixels))
                         .expect("Error running kmeans");
                 });
             },
