@@ -157,11 +157,4 @@ impl WasmColorCruncher {
         let result = self.0.quantize_image(data).await;
         Ok(Uint8Array::from(result.as_slice()))
     }
-
-    // TODO
-    // #[wasm_bindgen(js_name = createPalette)]
-    // pub async fn create_palette(&self, data: &[u8]) -> Result<Vec<Uint8Array>, String> {
-    //     // let palette = self.0.create_palette(data).await;
-    //     // Ok(palette.iter().map(|color| Uint8Array::from(color.to_vec())).collect())
-    // }
 }
