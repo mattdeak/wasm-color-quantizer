@@ -1,10 +1,12 @@
 [package]
-name = "colorcrunch"
+name = "colorcruncher"
 version = "0.1.0"
 edition = "2021"
 authors = ["Matthew Deakos <mwoolnerdeakos@gmail.com>"]
 license = "MIT"
-description = "A fast, wasm-compatible color quantization library written in Rust"
+description = "A fast and minimal wasm-compatible color quantization library written in Rust"
+repository = "git@github.com:mattdeak/wasm-color-quantizer.git"
+keywords = ["color", "image-processing", "wasm", "gpu", "k-means"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -13,8 +15,8 @@ crate-type = ["cdylib", "rlib"]
 debug = true
 
 [features]
-default = ["wasm","gpu"]
-python = ["pyo3","numpy"]
+default = ["wasm", "gpu"]
+python = ["pyo3", "numpy"]
 wasm = ["js-sys", "wasm-bindgen", "console_log", "console_error_panic_hook"]
 gpu = ["wgpu", "env_logger", "log", "bytemuck", "wasm-bindgen-futures"]
 
@@ -35,7 +37,7 @@ harness = false
 
 [dependencies]
 getrandom = { version = "0.2.15", features = ["js"] }
-pyo3 = { version = "0.21.0", features = ["extension-module"], optional=true }
+pyo3 = { version = "0.21.0", features = ["extension-module"], optional = true }
 numpy = { version = "0.21.0", optional = true }
 
 bytemuck = { version = "1.16.1", features = ["derive"], optional = true }
@@ -46,7 +48,7 @@ itertools = "0.13.0"
 js-sys = { version = "0.3.69", optional = true }
 log = { version = "0.4.22", optional = true }
 rand = "0.8.5"
-wasm-bindgen = { version = "0.2.92", optional = true}
+wasm-bindgen = { version = "0.2.92", optional = true }
 wgpu = { version = "0.20.1", optional = true }
 wasm-bindgen-futures = { version = "0.4.42", optional = true }
 console_log = { version = "1.0.0", optional = true }

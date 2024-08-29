@@ -8,6 +8,37 @@ This is a simple tool I created to share a color reducer with a pixel artist fri
 ## Access
 You can access and use this tool [right here](https://mattdeak.github.io/wasm-color-quantizer/). It just runs in the browser.
 
+## Installation
+This package is published as `colorcruncher` on npm. You can install it with `npm install colorcruncher`.
+```javascript
+import init, { ColorCruncher } from 'colorcruncher';
+
+// initialization (required for wasm)
+async function initWasm() {
+    await init();
+}
+
+
+async function quantizeImage(imageData) {
+  let cruncherBuilder = new ColorCruncher(numColors, sampleRate)
+      .withAlgorithm(selectedAlgorithm)
+      .withMaxIterations(maxIter)
+      .withTolerance(tol);
+
+  if (seedValue !== undefined) {
+      cruncherBuilder = cruncherBuilder.withSeed(seedValue);
+  }
+
+  const cruncher = await cruncherBuilder.build();
+  const processedData = await cruncher.quantizeImage(imageData.data);
+
+  const processedImageData = new ImageData(new Uint8ClampedArray(processedData), canvas.width, canvas.height, {
+      colorSpace: 'srgb'
+  });
+  ctx.putImageData(processedImageData, 0, 0);
+}
+```
+
 ## How it Works
 This quantizer uses Rust compiled to WebAssembly (WASM) to perform the K-means calculation quickly and efficiently in the browser.
 Will update soon with better sampling to handle very large N-color requests or humongous images (bigger than any reasonable image would be). Maybe gifs/video too.
