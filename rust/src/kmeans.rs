@@ -9,7 +9,7 @@ mod utils;
 pub mod gpu;
 
 #[cfg(feature = "gpu")]
-use self::gpu::KMeansGpu;
+use self::gpu::run_lloyd_gpu;
 
 pub use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
 pub use crate::kmeans::initializer::Initializer;
@@ -24,11 +24,11 @@ const DEFAULT_INITIALIZER: Initializer = Initializer::KMeansPlusPlus;
 
 // A wrapper for easier usage
 #[derive(Debug, Clone)]
-pub struct KMeansCPU(KMeansConfig);
+pub struct KMeans(KMeansConfig);
 
-impl KMeansCPU {
+impl KMeans {
     pub fn from_config(config: KMeansConfig) -> Self {
-        KMeansCPU(config)
+        Self(config)
     }
 
     pub fn with_k(mut self, k: usize) -> Self {
@@ -58,9 +58,9 @@ impl KMeansCPU {
     }
 }
 
-impl Default for KMeansCPU {
+impl Default for KMeans {
     fn default() -> Self {
-        KMeansCPU(KMeansConfig {
+        KMeans(KMeansConfig {
             k: 3,
             max_iterations: 100,
             tolerance: 1e-4,
@@ -71,7 +71,7 @@ impl Default for KMeansCPU {
     }
 }
 
-impl KMeansCPU {
+impl KMeans {
     pub fn run<T: VectorExt>(&self, data: &[T]) -> KMeansResult<T> {
         let unique_colors = num_distinct_colors(data);
         if unique_colors < self.0.k {
@@ -91,85 +91,48 @@ impl KMeansCPU {
             ))),
         }
     }
-}
-
-#[derive(Debug)]
-pub enum KMeans {
-    Cpu(KMeansCPU),
-    #[cfg(feature = "gpu")]
-    Gpu(KMeansGpu),
+    pub async fn run_async(&self, data: &[Vec4u]) -> KMeansResult<Vec4> {
+        match &self.0.algorithm {
+            KMeansAlgorithm::Lloyd | KMeansAlgorithm::Hamerly => {
+                let data = data
+                    .iter()
+                    .map(|v| [v[0] as f32, v[1] as f32, v[2] as f32, v[3] as f32])
+                    .collect::<Vec<Vec4>>();
+                self.run(&data)
+            }
+            #[cfg(feature = "gpu")]
+            _ => run_lloyd_gpu(self.0.clone(), data)
+                .await
+                .map_err(|e| KMeansError(e.to_string())),
+        }
+    }
 }
 
 impl KMeans {
     pub async fn new(config: KMeansConfig) -> Self {
-        match &config.algorithm {
-            KMeansAlgorithm::Gpu(_) => KMeans::Gpu(KMeansGpu::new(config).await),
-            _ => KMeans::Cpu(KMeansCPU(config)),
-        }
-    }
-
-    #[cfg(feature = "gpu")]
-    pub async fn gpu(self) -> Result<Self, &'static str> {
-        use self::gpu::GpuAlgorithm;
-
-        match &self {
-            KMeans::Cpu(cpu) => {
-                let config = cpu.0.clone();
-                match &config.algorithm {
-                    KMeansAlgorithm::Gpu(_) => Ok(self),
-                    cpu => {
-                        let algorithm = GpuAlgorithm::try_from(cpu.clone())?;
-                        let mut new_config = config.clone();
-                        new_config.algorithm = KMeansAlgorithm::Gpu(algorithm);
-                        Ok(KMeans::Gpu(KMeansGpu::new(new_config).await))
-                    }
-                }
-            }
-            _ => Err("Algorithm not supported on gpu"),
-        }
-    }
-
-    #[cfg(feature = "gpu")]
-    pub async fn new_gpu(config: KMeansConfig) -> Self {
-        KMeans::Gpu(KMeansGpu::new(config).await)
+        KMeans(config)
     }
 
     pub fn run_vec4(&self, data: &[Vec4]) -> KMeansResult<Vec4> {
-        match self {
-            KMeans::Cpu(cpu) => cpu.run(data),
+        match &self.0.algorithm {
+            KMeansAlgorithm::Lloyd => self.run(data),
+            KMeansAlgorithm::Hamerly => self.run(data),
             #[cfg(feature = "gpu")]
             _ => Err(KMeansError(
-                "GPU not supported for 3 channel data. Convert to 4 channel data first."
-                    .to_string(),
+                "GPU not supported for vec4 float data. Convert to u8 data first.".to_string(),
             )),
         }
     }
 
     pub fn run_vec3(&self, data: &[Vec3]) -> KMeansResult<Vec3> {
-        match self {
-            KMeans::Cpu(cpu) => cpu.run(data),
+        match &self.0.algorithm {
+            KMeansAlgorithm::Lloyd => self.run(data),
+            KMeansAlgorithm::Hamerly => self.run(data),
             #[cfg(feature = "gpu")]
             _ => Err(KMeansError(
                 "GPU not supported for 3 channel data. Convert to 4 channel data first."
                     .to_string(),
             )),
-        }
-    }
-
-    pub async fn run_async(&self, data: &[Vec4u]) -> KMeansResult<Vec4> {
-        match self {
-            KMeans::Cpu(cpu) => {
-                let data_f32: Vec<Vec4> = data
-                    .iter()
-                    .map(|p| [p[0] as f32, p[1] as f32, p[2] as f32, p[3] as f32])
-                    .collect();
-                cpu.run(&data_f32)
-            }
-            #[cfg(feature = "gpu")]
-            KMeans::Gpu(gpu) => gpu
-                .run_async(data)
-                .await
-                .map_err(|e| KMeansError(e.to_string())),
         }
     }
 }
@@ -177,12 +140,11 @@ impl KMeans {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kmeans::config::{KMeansAlgorithm, KMeansConfig};
+    use crate::kmeans::config::KMeansAlgorithm;
     use futures::executor::block_on;
     use rand::rngs::StdRng;
     use rand::Rng;
     use rand::SeedableRng;
-    use tests::gpu::GpuAlgorithm;
 
     trait TestExt<T: VectorExt> {
         fn assert_almost_eq(&self, other: &[T], tolerance: f64);
@@ -219,7 +181,8 @@ mod tests {
                 seed: None,
             };
 
-            let (clusters, centroids) = KMeansCPU(config.clone()).run(data).unwrap();
+            let kmeans = KMeans::from_config(config.clone());
+            let (clusters, centroids) = kmeans.run(data).unwrap();
 
             assert_eq!(
                 clusters.len(),
@@ -239,7 +202,6 @@ mod tests {
                 "clusters.iter().filter(|&&c| c < k).count() == data.len() with algorithm {}",
                 config.algorithm
             );
-            // assert_eq!(centroids.iter().filter(|&&c| c != [0.0, 0.0, 0.0]).count(), expected_non_empty_clusters);
             assert!(expected_non_empty_clusters >= 1);
         }
     }
@@ -277,7 +239,8 @@ mod tests {
             initializer: DEFAULT_INITIALIZER,
             seed: None,
         };
-        let result = KMeansCPU(config).run(&data);
+        let kmeans = KMeans::from_config(config);
+        let result = kmeans.run(&data);
         assert_eq!(
             result.err().unwrap().to_string(),
             "Number of unique colors is less than k: 2"
@@ -319,31 +282,38 @@ mod tests {
             seed: Some(seed),
         };
 
+        #[cfg(feature = "gpu")]
         let config_gpu = KMeansConfig {
             k: 3,
             max_iterations: 500,
             tolerance: 1e-6,
-            algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
+            algorithm: KMeansAlgorithm::LloydGpu,
             initializer: DEFAULT_INITIALIZER,
             seed: Some(seed),
         };
 
-        let gpu = block_on(KMeansGpu::new(config_gpu));
+        let kmeans_lloyd = KMeans::from_config(config_lloyd);
+        let kmeans_hamerly = KMeans::from_config(config_hamerly);
 
-        let (clusters1, centroids1) = KMeansCPU(config_lloyd).run(&data).unwrap();
-        let (clusters2, centroids2) = KMeansCPU(config_hamerly).run(&data).unwrap();
+        let (clusters1, centroids1) = kmeans_lloyd.run(&data).unwrap();
+        let (clusters2, centroids2) = kmeans_hamerly.run(&data).unwrap();
 
-        let u32_data: Vec<Vec4u> = data
-            .iter()
-            .map(|p| [p[0] as u32, p[1] as u32, p[2] as u32, p[3] as u32])
-            .collect();
-        let (clusters3, centroids3) = gpu.run(&u32_data).unwrap();
+        #[cfg(feature = "gpu")]
+        {
+            let kmeans_gpu = KMeans::from_config(config_gpu);
+            let u32_data: Vec<Vec4u> = data
+                .iter()
+                .map(|p| [p[0] as u32, p[1] as u32, p[2] as u32, p[3] as u32])
+                .collect();
+            let (clusters3, centroids3) = block_on(kmeans_gpu.run_async(&u32_data)).unwrap();
 
-        dbg!(&centroids1);
-        dbg!(&centroids3);
+            dbg!(&centroids1);
+            dbg!(&centroids3);
+
+            centroids1.assert_almost_eq(&centroids3, 1.0);
+        }
 
         centroids1.assert_almost_eq(&centroids2, 1.0);
-        centroids1.assert_almost_eq(&centroids3, 1.0);
         assert_eq!(clusters1, clusters2);
     }
 }

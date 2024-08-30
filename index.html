@@ -1,102 +1,132 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Image Color Quantizer</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <h1>Image Color Quantizer</h1>
-        <div class="grid">
-            <div>
-                <div class="input-group">
-                    <label for="imageUpload">Upload Image</label>
-                    <input type="file" id="imageUpload" accept="image/*">
-                </div>
-                <div class="input-group">
-                    <label for="colorCount">Max Colors</label>
-                    <input type="number" id="colorCount" min="2" max="256" value="5">
-                    <small id="colorWarning" style="display: none; color: orange;">High color counts may slow down processing. Prefer Hamerly or Lloyd GPU algorithms at this count.</small>
-                </div>
-                <details>
-                    <summary>Advanced Options</summary>
-                    <div class="input-group">
-                        <label for="algorithm">Algorithm</label>
-                        <select id="algorithm">
-                            <option value="hamerly" selected>Hamerly</option>
-                            <option value="lloyd">Lloyd</option>
-                            <option value="lloyd-assignment-gpu">Lloyd Assignment GPU</option>
-                            <option value="lloyd-all-gpu">Lloyd All GPU</option>
-                        </select>
-                    </div>
-                    <small id="algorithmWarning" style="display: none; color: orange;">This is slower than Lloyd Assignment GPU in most cases</small>
-                    <div class="input-group">
-                        <label for="maxIterations">Max Iterations</label>
-                        <input type="number" id="maxIterations" min="1" value="300">
-                    </div>
-                    <div class="input-group">
-                        <label for="tolerance">Tolerance</label>
-                        <input type="number" id="tolerance" min="0" max="1" step="0.01" value="0.02">
-                    </div>
-                    <div class="input-group">
-                        <label for="seed">Seed (optional)</label>
-                        <input type="number" id="seed" placeholder="Leave empty for random">
-                    </div>
-                </details>
-                <button id="processBtn">Process Image</button>
-                <button id="downloadBtn" disabled>Download Image</button>
+      <h1>Image Color Quantizer</h1>
+      <div class="grid">
+        <div>
+          <div class="input-group">
+            <label for="imageUpload">Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*" />
+          </div>
+          <div class="input-group">
+            <label for="colorCount">Max Colors</label>
+            <input type="number" id="colorCount" min="2" max="256" value="5" />
+            <small id="colorWarning" style="display: none; color: orange"
+              >High color counts may slow down processing. Prefer Hamerly or
+              Lloyd GPU algorithms at this count.</small
+            >
+          </div>
+          <details>
+            <summary>Advanced Options</summary>
+            <div class="input-group">
+              <label for="algorithm">Algorithm</label>
+              <select id="algorithm">
+                <option value="hamerly" selected>Hamerly</option>
+                <option value="lloyd">Lloyd</option>
+                <option value="lloyd-assignment-gpu">
+                  Lloyd Assignment GPU
+                </option>
+                <option value="lloyd-all-gpu">Lloyd All GPU</option>
+              </select>
             </div>
-            <div>
-                <h2>Original Image</h2>
-                <div id="imagePreview" class="image-preview">
-                    <p id="dropText">No image uploaded</p>
-                    <img id="previewImage" style="display: none;" alt="Image preview">
-                </div>
+            <small id="algorithmWarning" style="display: none; color: orange"
+              >This is slower than Lloyd Assignment GPU in most cases</small
+            >
+            <div class="input-group">
+              <label for="maxIterations">Max Iterations</label>
+              <input type="number" id="maxIterations" min="1" value="300" />
             </div>
-            <div>
-                <h2>Processed Image</h2>
-                <div id="processedImagePreview" class="image-preview">
-                    <p>No image processed yet</p>
-                    <img id="processedImage" style="display: none;" alt="Processed image preview">
-                    <div id="processingIndicator" style="display: none;">
-                        <div class="spinner"></div>
-                        <p>Processing image...</p>
-                    </div>
-                </div>
+            <div class="input-group">
+              <label for="tolerance">Tolerance</label>
+              <input
+                type="number"
+                id="tolerance"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.02"
+              />
             </div>
+            <div class="input-group">
+              <label for="seed">Seed (optional)</label>
+              <input
+                type="number"
+                id="seed"
+                placeholder="Leave empty for random"
+              />
+            </div>
+          </details>
+          <button id="processBtn">Process Image</button>
+          <button id="downloadBtn" disabled>Download Image</button>
         </div>
+        <div>
+          <h2>Original Image</h2>
+          <div id="imagePreview" class="image-preview">
+            <p id="dropText">No image uploaded</p>
+            <img id="previewImage" style="display: none" alt="Image preview" />
+          </div>
+        </div>
+        <div>
+          <h2>Processed Image</h2>
+          <div id="processedImagePreview" class="image-preview">
+            <p>No image processed yet</p>
+            <img
+              id="processedImage"
+              style="display: none"
+              alt="Processed image preview"
+            />
+            <div id="processingIndicator" style="display: none">
+              <div class="spinner"></div>
+              <p>Processing image...</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="script.js"></script>
     <script type="module">
-        import init, { ColorCruncher } from './pkg/colorcrunch.js';
-        
-        async function initWasm() {
-          await init();
-          window.ColorCruncher = ColorCruncher;
-        }
-        
-        initWasm();
+      import init, { ColorCruncherBuilder } from "./pkg/colorcruncher.js";
 
-        // Add event listener for color count input
-        document.getElementById('colorCount').addEventListener('input', function() {
-            const warningElement = document.getElementById('colorWarning');
-            warningElement.style.display = this.value > 15 ? 'block' : 'none';
+      async function initWasm() {
+        await init();
+        window.ColorCruncherBuilder = ColorCruncherBuilder;
+      }
+
+      initWasm();
+
+      // Add event listener for color count input
+      document
+        .getElementById("colorCount")
+        .addEventListener("input", function () {
+          const warningElement = document.getElementById("colorWarning");
+          warningElement.style.display = this.value > 15 ? "block" : "none";
         });
 
-        // Add event listener for algorithm selection
-        document.getElementById('algorithm').addEventListener('change', function() {
-            const warningElement = document.getElementById('algorithmWarning');
-            warningElement.style.display = this.value === 'lloyd-all-gpu' ? 'block' : 'none';
+      // Add event listener for algorithm selection
+      document
+        .getElementById("algorithm")
+        .addEventListener("change", function () {
+          const warningElement = document.getElementById("algorithmWarning");
+          warningElement.style.display =
+            this.value === "lloyd-all-gpu" ? "block" : "none";
         });
 
-        // Add event listener for algorithm selection
-        document.getElementById('algorithm').addEventListener('change', function() {
-            const warningElement = document.getElementById('algorithmWarning');
-            warningElement.style.display = this.value === 'lloyd-all-gpu' ? 'block' : 'none';
+      // Add event listener for algorithm selection
+      document
+        .getElementById("algorithm")
+        .addEventListener("change", function () {
+          const warningElement = document.getElementById("algorithmWarning");
+          warningElement.style.display =
+            this.value === "lloyd-all-gpu" ? "block" : "none";
         });
     </script>
-</body>
+  </body>
 </html>

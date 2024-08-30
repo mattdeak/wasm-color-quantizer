@@ -14,8 +14,6 @@ use wgpu::{
     ShaderModuleDescriptor, ShaderSource, ShaderStages,
 };
 
-type Centroids = Vec<Vec4>;
-
 const WORKGROUP_SIZE: u32 = 256;
 
 struct ProcessBuffers {
@@ -318,8 +316,8 @@ impl LloydAssignmentsOnly {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kmeans::gpu::GpuAlgorithm;
     use crate::kmeans::initializer::Initializer;
+    use crate::kmeans::KMeansAlgorithm;
     use futures::executor::block_on;
     use rand::prelude::*;
     use rand::thread_rng;
@@ -329,7 +327,7 @@ mod tests {
             k: 3,
             max_iterations: 10,
             tolerance: 0.001,
-            algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
+            algorithm: KMeansAlgorithm::LloydGpu,
             initializer: Initializer::Random,
             seed: Some(42),
         }
@@ -375,7 +373,7 @@ mod tests {
             k: 2,
             max_iterations: 100,
             tolerance: 0.001,
-            algorithm: GpuAlgorithm::LloydAssignmentsOnly.into(),
+            algorithm: KMeansAlgorithm::LloydGpu,
             initializer: Initializer::Random,
             seed: Some(42),
         };

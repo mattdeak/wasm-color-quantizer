@@ -4,7 +4,7 @@
 */
 export function start(): void;
 
-export type Algorithm = "lloyd" | "hamerly" | "lloyd-all-gpu" | "lloyd-assignment-gpu";
+export type Algorithm = "lloyd" | "hamerly" | "lloyd-gpu"
 export type Initializer = "kmeans++" | "random";
 
 
@@ -12,11 +12,6 @@ export type Initializer = "kmeans++" | "random";
 */
 export class ColorCruncher {
   free(): void;
-/**
-* @param {number} max_colors
-* @param {number} sample_rate
-*/
-  constructor(max_colors: number, sample_rate: number);
 /**
 * @param {Uint8Array} data
 * @returns {Promise<Uint8Array>}
@@ -28,72 +23,43 @@ export class ColorCruncher {
 export class ColorCruncherBuilder {
   free(): void;
 /**
-* @returns {ColorCruncherBuilder}
 */
-  static _new(): ColorCruncherBuilder;
+  constructor();
 /**
 * @param {number} max_colors
 * @returns {ColorCruncherBuilder}
 */
   withMaxColors(max_colors: number): ColorCruncherBuilder;
 /**
-* @param {number} max_colors
-*/
-  setMaxColors(max_colors: number): void;
-/**
 * @param {number} sample_rate
 * @returns {ColorCruncherBuilder}
 */
   withSampleRate(sample_rate: number): ColorCruncherBuilder;
-/**
-* @param {number} sample_rate
-*/
-  setSampleRate(sample_rate: number): void;
 /**
 * @param {number} tolerance
 * @returns {ColorCruncherBuilder}
 */
   withTolerance(tolerance: number): ColorCruncherBuilder;
 /**
-* @param {number} tolerance
-*/
-  setTolerance(tolerance: number): void;
-/**
 * @param {number} max_iterations
 * @returns {ColorCruncherBuilder}
 */
   withMaxIterations(max_iterations: number): ColorCruncherBuilder;
-/**
-* @param {number} max_iterations
-*/
-  setMaxIterations(max_iterations: number): void;
 /**
 * @param {string} initializer
 * @returns {ColorCruncherBuilder}
 */
   withInitializer(initializer: string): ColorCruncherBuilder;
 /**
-* @param {string} initializer
-*/
-  setInitializer(initializer: string): void;
-/**
 * @param {string} algorithm
 * @returns {ColorCruncherBuilder}
 */
   withAlgorithm(algorithm: string): ColorCruncherBuilder;
 /**
-* @param {string} algorithm
-*/
-  setAlgorithm(algorithm: string): void;
-/**
 * @param {bigint} seed
 * @returns {ColorCruncherBuilder}
 */
   withSeed(seed: bigint): ColorCruncherBuilder;
-/**
-* @param {bigint} seed
-*/
-  setSeed(seed: bigint): void;
 /**
 * @returns {Promise<ColorCruncher>}
 */
@@ -107,23 +73,15 @@ export interface InitOutput {
   readonly start: () => void;
   readonly __wbg_colorcruncher_free: (a: number) => void;
   readonly __wbg_colorcruncherbuilder_free: (a: number) => void;
-  readonly colorcruncherbuilder__new: () => number;
+  readonly colorcruncherbuilder_new: () => number;
   readonly colorcruncherbuilder_withMaxColors: (a: number, b: number) => number;
-  readonly colorcruncherbuilder_setMaxColors: (a: number, b: number) => void;
   readonly colorcruncherbuilder_withSampleRate: (a: number, b: number) => number;
-  readonly colorcruncherbuilder_setSampleRate: (a: number, b: number) => void;
   readonly colorcruncherbuilder_withTolerance: (a: number, b: number) => number;
-  readonly colorcruncherbuilder_setTolerance: (a: number, b: number) => void;
   readonly colorcruncherbuilder_withMaxIterations: (a: number, b: number) => number;
-  readonly colorcruncherbuilder_setMaxIterations: (a: number, b: number) => void;
   readonly colorcruncherbuilder_withInitializer: (a: number, b: number, c: number) => number;
-  readonly colorcruncherbuilder_setInitializer: (a: number, b: number, c: number) => void;
   readonly colorcruncherbuilder_withAlgorithm: (a: number, b: number, c: number) => number;
-  readonly colorcruncherbuilder_setAlgorithm: (a: number, b: number, c: number) => void;
   readonly colorcruncherbuilder_withSeed: (a: number, b: number) => number;
-  readonly colorcruncherbuilder_setSeed: (a: number, b: number) => void;
   readonly colorcruncherbuilder_build: (a: number) => number;
-  readonly colorcruncher_builder: (a: number, b: number) => number;
   readonly colorcruncher_quantizeImage: (a: number, b: number, c: number) => number;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
