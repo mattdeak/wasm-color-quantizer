@@ -253,7 +253,7 @@ function handleError(f, args) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
     }
 }
-function __wbg_adapter_395(arg0, arg1, arg2, arg3) {
+function __wbg_adapter_387(arg0, arg1, arg2, arg3) {
     wasm.wasm_bindgen__convert__closures__invoke2_mut__h849a5a7e5a0f14b2(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
 }
 
@@ -282,14 +282,6 @@ export class ColorCruncher {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_colorcruncher_free(ptr);
-    }
-    /**
-    * @param {number} max_colors
-    * @param {number} sample_rate
-    */
-    constructor(max_colors, sample_rate) {
-        const ret = wasm.colorcruncher_builder(max_colors, sample_rate);
-        return ColorCruncherBuilder.__wrap(ret);
     }
     /**
     * @param {Uint8Array} data
@@ -330,11 +322,11 @@ export class ColorCruncherBuilder {
         wasm.__wbg_colorcruncherbuilder_free(ptr);
     }
     /**
-    * @returns {ColorCruncherBuilder}
     */
-    static _new() {
-        const ret = wasm.colorcruncherbuilder__new();
-        return ColorCruncherBuilder.__wrap(ret);
+    constructor() {
+        const ret = wasm.colorcruncherbuilder_new();
+        this.__wbg_ptr = ret >>> 0;
+        return this;
     }
     /**
     * @param {number} max_colors
@@ -346,12 +338,6 @@ export class ColorCruncherBuilder {
         return ColorCruncherBuilder.__wrap(ret);
     }
     /**
-    * @param {number} max_colors
-    */
-    setMaxColors(max_colors) {
-        wasm.colorcruncherbuilder_setMaxColors(this.__wbg_ptr, max_colors);
-    }
-    /**
     * @param {number} sample_rate
     * @returns {ColorCruncherBuilder}
     */
@@ -359,12 +345,6 @@ export class ColorCruncherBuilder {
         const ptr = this.__destroy_into_raw();
         const ret = wasm.colorcruncherbuilder_withSampleRate(ptr, sample_rate);
         return ColorCruncherBuilder.__wrap(ret);
-    }
-    /**
-    * @param {number} sample_rate
-    */
-    setSampleRate(sample_rate) {
-        wasm.colorcruncherbuilder_setSampleRate(this.__wbg_ptr, sample_rate);
     }
     /**
     * @param {number} tolerance
@@ -376,12 +356,6 @@ export class ColorCruncherBuilder {
         return ColorCruncherBuilder.__wrap(ret);
     }
     /**
-    * @param {number} tolerance
-    */
-    setTolerance(tolerance) {
-        wasm.colorcruncherbuilder_setTolerance(this.__wbg_ptr, tolerance);
-    }
-    /**
     * @param {number} max_iterations
     * @returns {ColorCruncherBuilder}
     */
@@ -389,12 +363,6 @@ export class ColorCruncherBuilder {
         const ptr = this.__destroy_into_raw();
         const ret = wasm.colorcruncherbuilder_withMaxIterations(ptr, max_iterations);
         return ColorCruncherBuilder.__wrap(ret);
-    }
-    /**
-    * @param {number} max_iterations
-    */
-    setMaxIterations(max_iterations) {
-        wasm.colorcruncherbuilder_setMaxIterations(this.__wbg_ptr, max_iterations);
     }
     /**
     * @param {string} initializer
@@ -408,14 +376,6 @@ export class ColorCruncherBuilder {
         return ColorCruncherBuilder.__wrap(ret);
     }
     /**
-    * @param {string} initializer
-    */
-    setInitializer(initializer) {
-        const ptr0 = passStringToWasm0(initializer, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.colorcruncherbuilder_setInitializer(this.__wbg_ptr, ptr0, len0);
-    }
-    /**
     * @param {string} algorithm
     * @returns {ColorCruncherBuilder}
     */
@@ -427,14 +387,6 @@ export class ColorCruncherBuilder {
         return ColorCruncherBuilder.__wrap(ret);
     }
     /**
-    * @param {string} algorithm
-    */
-    setAlgorithm(algorithm) {
-        const ptr0 = passStringToWasm0(algorithm, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.colorcruncherbuilder_setAlgorithm(this.__wbg_ptr, ptr0, len0);
-    }
-    /**
     * @param {bigint} seed
     * @returns {ColorCruncherBuilder}
     */
@@ -442,12 +394,6 @@ export class ColorCruncherBuilder {
         const ptr = this.__destroy_into_raw();
         const ret = wasm.colorcruncherbuilder_withSeed(ptr, seed);
         return ColorCruncherBuilder.__wrap(ret);
-    }
-    /**
-    * @param {bigint} seed
-    */
-    setSeed(seed) {
-        wasm.colorcruncherbuilder_setSeed(this.__wbg_ptr, seed);
     }
     /**
     * @returns {Promise<ColorCruncher>}
@@ -1245,7 +1191,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_395(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_387(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -1317,16 +1263,16 @@ function __wbg_get_imports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper1032 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 271, __wbg_adapter_28);
+    imports.wbg.__wbindgen_closure_wrapper1008 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 269, __wbg_adapter_28);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper1034 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 271, __wbg_adapter_28);
+    imports.wbg.__wbindgen_closure_wrapper1010 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 269, __wbg_adapter_28);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper1120 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 278, __wbg_adapter_33);
+    imports.wbg.__wbindgen_closure_wrapper1096 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 276, __wbg_adapter_33);
         return addHeapObject(ret);
     };
 
@@ -1368,7 +1314,7 @@ async function __wbg_init(input) {
     if (wasm !== undefined) return wasm;
 
     if (typeof input === 'undefined') {
-        input = new URL('colorcrunch_bg.wasm', import.meta.url);
+        input = new URL('colorcruncher_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

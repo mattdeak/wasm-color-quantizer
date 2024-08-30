@@ -3,87 +3,20 @@
 mod buffers;
 mod common;
 mod lloyd_gpu1;
-mod lloyd_gpu2;
-
-use futures::executor::block_on;
 
 use crate::kmeans::config::KMeansConfig;
 use crate::types::{Vec4, Vec4u};
 
 use self::lloyd_gpu1::LloydAssignmentsOnly;
-use self::lloyd_gpu2::LloydAssignmentsAndCentroids;
 
 use super::types::KMeansError;
-use super::KMeansAlgorithm;
 
-#[derive(Debug, Clone, Copy)]
-pub enum GpuAlgorithm {
-    LloydAssignmentsOnly,
-    LloydAssignmentsAndCentroids,
-}
-
-impl TryFrom<KMeansAlgorithm> for GpuAlgorithm {
-    type Error = &'static str;
-    fn try_from(algorithm: KMeansAlgorithm) -> std::prelude::v1::Result<Self, Self::Error> {
-        match algorithm {
-            KMeansAlgorithm::Gpu(gpu) => Ok(gpu),
-            KMeansAlgorithm::Lloyd => Ok(GpuAlgorithm::LloydAssignmentsOnly),
-            _ => Err("Algorithm not supported on gpu"),
-        }
-    }
-}
-
-impl From<GpuAlgorithm> for KMeansAlgorithm {
-    fn from(algorithm: GpuAlgorithm) -> Self {
-        KMeansAlgorithm::Gpu(algorithm)
-    }
-}
-
-#[derive(Debug)]
-enum AlgorithmImpl {
-    LloydAssignmentsOnly(LloydAssignmentsOnly),
-    LloydAssignmentsAndCentroids(LloydAssignmentsAndCentroids),
-}
-
-#[derive(Debug)]
-pub struct KMeansGpu {
+pub async fn run_lloyd_gpu(
     config: KMeansConfig,
-    algorithm: AlgorithmImpl,
-}
-
-impl KMeansGpu {
-    pub async fn new(config: KMeansConfig) -> Self {
-        if let Some(gpu_algorithm) = config.algorithm.gpu() {
-            let algorithm = match gpu_algorithm {
-                GpuAlgorithm::LloydAssignmentsOnly => AlgorithmImpl::LloydAssignmentsOnly(
-                    LloydAssignmentsOnly::from_config(config.clone()).await,
-                ),
-                GpuAlgorithm::LloydAssignmentsAndCentroids => {
-                    AlgorithmImpl::LloydAssignmentsAndCentroids(
-                        LloydAssignmentsAndCentroids::from_config(config.clone()).await,
-                    )
-                }
-            };
-            Self {
-                config: config.clone(),
-                algorithm,
-            }
-        } else {
-            // TODO: replace with error handling
-            panic!("Gpu algorithm not found");
-        }
-    }
-
-    pub fn run(&self, data: &[Vec4u]) -> Result<(Vec<usize>, Vec<Vec4>), KMeansError> {
-        block_on(self.run_async(data))
-    }
-
-    pub async fn run_async(&self, data: &[Vec4u]) -> Result<(Vec<usize>, Vec<Vec4>), KMeansError> {
-        match &self.algorithm {
-            AlgorithmImpl::LloydAssignmentsOnly(lloyd) => lloyd.run_async(data).await,
-            AlgorithmImpl::LloydAssignmentsAndCentroids(lloyd) => lloyd.run_async(data).await,
-        }
-    }
+    data: &[Vec4u],
+) -> Result<(Vec<usize>, Vec<Vec4>), KMeansError> {
+    let lloyd_gpu = LloydAssignmentsOnly::from_config(config).await;
+    lloyd_gpu.run_async(data).await
 }
 
 #[cfg(test)]
@@ -91,10 +24,10 @@ mod tests {
     use super::*;
     use crate::kmeans::config::KMeansConfig;
     use crate::types::Vec4u;
+    use futures::executor::block_on;
     use rand::rngs::StdRng;
     use rand::Rng;
     use rand::SeedableRng;
-    use statrs::assert_almost_eq;
 
     #[test]
     fn test_gpu_algorithms_convergence() {
@@ -115,7 +48,7 @@ mod tests {
             })
             .collect();
 
-        // Create configurations for each algorithm
+        // Create configuration
         let config = KMeansConfig {
             seed: Some(SEED),
             k: K,
@@ -125,37 +58,22 @@ mod tests {
             ..Default::default()
         };
 
-        let algorithms = vec![
-            GpuAlgorithm::LloydAssignmentsOnly,
-            GpuAlgorithm::LloydAssignmentsAndCentroids,
-        ];
+        // Run the GPU algorithm
+        let (assignments, centroids) = block_on(run_lloyd_gpu(config, &data)).unwrap();
 
-        let mut results = Vec::new();
+        // Basic sanity checks
+        assert_eq!(assignments.len(), N);
+        assert_eq!(centroids.len(), K);
 
-        // Run each algorithm
-        for alg in algorithms {
-            dbg!("Running algorithm: {}", alg);
-            let mut cfg = config.clone();
-            cfg.algorithm = KMeansAlgorithm::Gpu(alg);
-            let kmeans = block_on(KMeansGpu::new(cfg));
-            let (assignments, centroids) = block_on(kmeans.run_async(&data)).unwrap();
-            results.push((assignments, centroids));
+        // Check if all assignments are within the valid range
+        for assignment in &assignments {
+            assert!(*assignment < K);
         }
 
-        // Compare results
-        for i in 1..results.len() {
-            let (assignments_a, centroids_a) = &results[0];
-            let (assignments_b, centroids_b) = &results[i];
-
-            // Check if assignments are identical
-            // assert_eq!(assignments_a, assignments_b, "Assignments differ for algorithm {}", i);
-
-            // Check if centroids are approximately equal
-            for (ca, cb) in centroids_a.iter().zip(centroids_b.iter()) {
-                assert_almost_eq!(ca[0] as f64, cb[0] as f64, 1.0);
-                assert_almost_eq!(ca[1] as f64, cb[1] as f64, 1.0);
-                assert_almost_eq!(ca[2] as f64, cb[2] as f64, 1.0);
-                assert_almost_eq!(ca[3] as f64, cb[3] as f64, 1.0);
+        // Check if all centroid components are within the valid range
+        for centroid in &centroids {
+            for component in centroid.iter() {
+                assert!(*component >= 0.0 && *component <= 255.0);
             }
         }
     }

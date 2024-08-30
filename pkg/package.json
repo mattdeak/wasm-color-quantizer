@@ -1,20 +1,31 @@
 {
-  "name": "colorcrunch",
+  "name": "colorcruncher",
   "type": "module",
   "collaborators": [
     "Matthew Deakos <mwoolnerdeakos@gmail.com>"
   ],
-  "description": "A fast, wasm-compatible color quantization library written in Rust",
-  "version": "0.1.0",
+  "description": "A fast and minimal wasm-compatible color quantization library written in Rust",
+  "version": "0.1.2",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:mattdeak/wasm-color-quantizer.git"
+  },
   "files": [
-    "colorcrunch_bg.wasm",
-    "colorcrunch.js",
-    "colorcrunch.d.ts"
+    "colorcruncher_bg.wasm",
+    "colorcruncher.js",
+    "colorcruncher.d.ts"
   ],
-  "main": "colorcrunch.js",
-  "types": "colorcrunch.d.ts",
+  "main": "colorcruncher.js",
+  "types": "colorcruncher.d.ts",
   "sideEffects": [
     "./snippets/*"
+  ],
+  "keywords": [
+    "color",
+    "image-processing",
+    "wasm",
+    "gpu",
+    "k-means"
   ]
 }

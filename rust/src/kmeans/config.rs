@@ -1,5 +1,3 @@
-#[cfg(feature = "gpu")]
-use crate::kmeans::gpu::GpuAlgorithm;
 use crate::kmeans::initializer::Initializer;
 use std::fmt;
 
@@ -8,17 +6,7 @@ pub enum KMeansAlgorithm {
     Lloyd,
     Hamerly,
     #[cfg(feature = "gpu")]
-    Gpu(GpuAlgorithm),
-}
-
-#[cfg(feature = "gpu")]
-impl KMeansAlgorithm {
-    pub fn gpu(&self) -> Option<GpuAlgorithm> {
-        match self {
-            KMeansAlgorithm::Gpu(gpu) => Some(*gpu),
-            _ => None,
-        }
-    }
+    LloydGpu,
 }
 
 impl fmt::Display for KMeansAlgorithm {

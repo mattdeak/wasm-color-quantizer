@@ -270,7 +270,7 @@ checksum = "0b6a852b24ab71dffc585bcb46eaf7959d175cb865a7152e35b348d1b2960422"
 
 [[package]]
 name = "colorcruncher"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "bytemuck",
  "console_error_panic_hook",
